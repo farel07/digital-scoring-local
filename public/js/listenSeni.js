@@ -102,7 +102,7 @@ function updateAndDisplayStatistics() {
 
 // Listener untuk skor juri
 window.Echo.channel(`kirim-poin-seni-tr-${PERTANDINGAN_ID}`)
-    .listen('KirimPoinSeniTR', (event) => { // Menggunakan titik (.) di depan nama Event
+    .listen('.KirimPoinSeniTR', (event) => { // Menggunakan titik (.) di depan nama Event
         
         console.log("Pesan diterima:", event);
 
