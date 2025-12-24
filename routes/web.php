@@ -30,6 +30,12 @@ Route::post('/juri/{id}', [juriController::class, 'kirim_poin_seni_tunggal_regu'
 
 Route::get('/dewan/{id}', [dewanController::class, 'index']);
 Route::post('/dewan/kirim-penalti', [DewanController::class, 'kirim_pelanggaran_seni_tunggal_regu']);
+Route::get('/dewan-operator/{id}', [dewanOperatorController::class, 'index']);
 // Route::post('/dewan/{id}', [dewanController::class, 'kirim_pelanggaran_seni_tunggal_regu']);
 
-Route::get('/dewan-operator/{id}', [dewanOperatorController::class, 'index']);
+// tanding
+// route get
+Route::get('/dewan-tanding/{id}', [dewanController::class, 'tanding_index']);
+
+// route post
+Route::post('/dewan/kirim-penalti-tanding', [DewanController::class, 'kirim_penalti_tanding']);
