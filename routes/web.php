@@ -5,6 +5,8 @@ use App\Events\NewNotificationEvent;
 use App\Http\Controllers\juriController;
 use App\Http\Controllers\dewanOperatorController;
 use App\Http\Controllers\dewanController;
+use App\Http\Controllers\penilaianController;
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -30,12 +32,8 @@ Route::post('/juri/{id}', [juriController::class, 'kirim_poin_seni_tunggal_regu'
 
 Route::get('/dewan/{id}', [dewanController::class, 'index']);
 Route::post('/dewan/kirim-penalti', [DewanController::class, 'kirim_pelanggaran_seni_tunggal_regu']);
-Route::get('/dewan-operator/{id}', [dewanOperatorController::class, 'index']);
 // Route::post('/dewan/{id}', [dewanController::class, 'kirim_pelanggaran_seni_tunggal_regu']);
 
-// tanding
-// route get
-Route::get('/dewan-tanding/{id}', [dewanController::class, 'tanding_index']);
+Route::get('/penilaian/{id}', [penilaianController::class, 'index']);
 
-// route post
-Route::post('/dewan/kirim-penalti-tanding', [DewanController::class, 'kirim_penalti_tanding']);
+Route::get('/dewan-operator/{id}', [dewanOperatorController::class, 'index']);
