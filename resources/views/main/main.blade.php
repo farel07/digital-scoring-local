@@ -27,7 +27,7 @@
     </script>
     @stack('scripts')
     {{-- <script src="{{ asset('assets') }}/js/timer.js"></script> --}}
-    <script src="/js/sendEventTanding.js"></script>
+    {{-- <script src="/js/sendEventTanding.js"></script> --}}
 </body>
 
 </html>

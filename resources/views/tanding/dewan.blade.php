@@ -65,7 +65,7 @@
                     <div class="row justify-content-between me-4">
                         @foreach($actionButtons as $btn)
                             <div class="col-6">
-                                <button class="mt-3 btn btn-primary w-100" type="button" style="border-radius: 10px; height:100px" onclick="sendAction('{{ $btn }}')">{{ $btn }}</button>
+                                <button class="mt-3 btn btn-primary w-100" type="button" style="border-radius: 10px; height:100px" onclick="sendAction('{{ $btn }}', 'blue')">{{ $btn }}</button>
                             </div>
                         @endforeach
                         {{-- Tombol Hapus --}}
@@ -127,7 +127,7 @@
                     <div class="row justify-content-between">
                         @foreach($actionButtons as $index => $btn)
                             <div class="col-6 {{ $index % 2 == 0 ? 'ps-3' : 'pe-3' }}">
-                                <button class="mt-3 btn btn-danger w-100" type="button" style="border-radius: 10px; height:100px">{{ $btn }}</button>
+                                <button class="mt-3 btn btn-danger w-100" type="button" style="border-radius: 10px; height:100px" onclick="sendAction('{{ $btn }}', 'red')">{{ $btn }}</button>
                             </div>
                         @endforeach
                         {{-- Tombol Hapus --}}
