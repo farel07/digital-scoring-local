@@ -21,7 +21,6 @@ function sendAction(action, filter = 'blue') {
         return;
     }
 
-
     let penalty_id = '';
     let value = 0;
 
