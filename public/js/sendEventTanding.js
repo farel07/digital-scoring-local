@@ -1,5 +1,6 @@
 // Mengambil ID pertandingan dari Meta Tag (rekomendasi) atau input hidden
 // Pastikan di HTML ada: <meta name="pertandingan-id" content="{{ $pertandingan->id }}">
+<<<<<<< HEAD
 const pertandinganId =
     document
         .querySelector('meta[name="pertandingan-id"]')
@@ -20,16 +21,41 @@ const counters = {
 function sendAction(action, filter = "blue") {
     // Validasi filter (jaga-jaga jika input salah)
     if (!["blue", "red"].includes(filter)) {
+=======
+const pertandinganId = document.querySelector('meta[name="pertandingan-id"]')?.getAttribute('content') || 2;
+
+// Ambil ID Juri dari URL (Segmen terakhir)
+// Contoh URL: http://website.com/juri/tanding/2/5  (5 adalah id juri)
+const pathSegments = window.location.pathname.split('/');
+const juriIdFromUrl = pathSegments[pathSegments.length - 1]; 
+// Atau sesuaikan index array jika struktur URL berbeda
+
+
+// State Management: Memisahkan counter untuk Blue dan Red
+const counters = {
+    blue: { bina: 1, teguran: 1, peringatan: 1 },
+    red:  { bina: 1, teguran: 1, peringatan: 1 }
+};
+
+function sendAction(action, filter = 'blue') {
+    // Validasi filter (jaga-jaga jika input salah)
+    if (!['blue', 'red'].includes(filter)) {
+>>>>>>> farrel
         console.error("Tim tidak dikenali");
         return;
     }
 
+<<<<<<< HEAD
     let penalty_id = "";
+=======
+    let penalty_id = '';
+>>>>>>> farrel
     let value = 0;
 
     // Logika Penentuan Value & ID
     switch (action) {
         case "BINA":
+<<<<<<< HEAD
             penalty_id = "bina";
             value = counters[filter].bina; // Ambil nilai saat ini
             counters[filter].bina++; // Increment untuk berikutnya
@@ -37,21 +63,41 @@ function sendAction(action, filter = "blue") {
 
         case "TEGURAN":
             penalty_id = "teguran";
+=======
+            penalty_id = 'bina';
+            value = counters[filter].bina; // Ambil nilai saat ini
+            counters[filter].bina++;       // Increment untuk berikutnya
+            break;
+        
+        case "TEGURAN":
+            penalty_id = 'teguran';
+>>>>>>> farrel
             value = counters[filter].teguran;
             counters[filter].teguran++;
             break;
 
         case "PERINGATAN":
+<<<<<<< HEAD
             penalty_id = "peringatan";
+=======
+            penalty_id = 'peringatan';
+>>>>>>> farrel
             value = counters[filter].peringatan;
             counters[filter].peringatan++;
             break;
 
         case "JATUH":
+<<<<<<< HEAD
             penalty_id = "jatuhan";
             // Jatuhan biasanya poin tetap (misal 3) atau flag 1.
             // Di sini saya set 1 agar tidak undefined seperti kode asli.
             value = 1;
+=======
+            penalty_id = 'jatuhan';
+            // Jatuhan biasanya poin tetap (misal 3) atau flag 1. 
+            // Di sini saya set 1 agar tidak undefined seperti kode asli.
+            value = 1; 
+>>>>>>> farrel
             break;
 
         default:
@@ -62,8 +108,13 @@ function sendAction(action, filter = "blue") {
     console.log(`Sending ${action} for ${filter}: Value ${value}`);
 
     // Kirim Data
+<<<<<<< HEAD
     fetch("/dewan/kirim-penalti-tanding", {
         method: "POST",
+=======
+    fetch('/dewan/kirim-penalti-tanding', {
+        method: 'POST',
+>>>>>>> farrel
         headers: {
             "Content-Type": "application/json",
             "X-CSRF-TOKEN": document
@@ -74,6 +125,7 @@ function sendAction(action, filter = "blue") {
             pertandingan_id: pertandinganId, // ID Dinamis
             penalty_id: penalty_id,
             filter: filter, // 'blue' atau 'red'
+<<<<<<< HEAD
             value: value,
         }),
     })
@@ -90,4 +142,22 @@ function sendAction(action, filter = "blue") {
             // Opsional: Rollback counter jika gagal fetch (agar sinkron)
             if (action !== "JATUH") counters[filter][penalty_id]--;
         });
+=======
+            value: value
+        })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Network response was not ok');
+        return response.json();
+    })
+    .then(data => {
+        console.log('Success:', data);
+        // Opsional: Update tampilan UI di sini jika perlu
+    })
+    .catch((error) => {
+        console.error('Error:', error);
+        // Opsional: Rollback counter jika gagal fetch (agar sinkron)
+        if (action !== "JATUH") counters[filter][penalty_id]--; 
+    });
+>>>>>>> farrel
 }
