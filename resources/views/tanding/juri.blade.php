@@ -75,11 +75,11 @@
                         </div>
                         <div class="col-6">
                             <button class="mt-3 btn btn-danger w-100" type="button"
-                                style="border-radius: 10px; height:100px"><img class="w-25 me-1"
+                                style="border-radius: 10px; height:100px" onclick="sendPoin('PUKUL', 'red')"><img class="w-25 me-1"
                                     src="{{ asset('assets') }}/img/icon/logo-pukul.png" alt="lah"> PUKUL</button>
                         </div>
                         <div class="d-grid gap-2 col-6 ms-auto mt-3">
-                            <button class="btn btn-danger" type="button" style="border-radius: 10px; height: 100px"><img
+                            <button class="btn btn-danger" type="button" style="border-radius: 10px; height: 100px" onclick="sendPoin('TENDANG', 'red')"><img
                                     class="w-25 me-1 mb-3" src="{{ asset('assets') }}/img/icon/logo-tendang.png"
                                     alt="lah">TENDANG</button>
                         </div>
@@ -94,4 +94,3 @@
     <script src="/js/sendEventJuriTanding.js"></script>
 
 @endsection
-
