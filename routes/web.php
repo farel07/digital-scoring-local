@@ -31,9 +31,23 @@ Route::get('/juri/{id}', [juriController::class, 'index']);
 Route::post('/juri/{id}', [juriController::class, 'kirim_poin_seni_tunggal_regu']);
 
 Route::get('/dewan/{id}', [dewanController::class, 'index']);
-Route::post('/dewan/kirim-penalti', [DewanController::class, 'kirim_pelanggaran_seni_tunggal_regu']);
+
 // Route::post('/dewan/{id}', [dewanController::class, 'kirim_pelanggaran_seni_tunggal_regu']);
 
-Route::get('/penilaian/{id}', [penilaianController::class, 'index']);
 
+Route::get('/penilaian/{id}', [penilaianController::class, 'index']);
 Route::get('/dewan-operator/{id}', [dewanOperatorController::class, 'index']);
+Route::post('/dewan/kirim-penalti', [dewanController::class, 'kirim_pelanggaran_seni_tunggal_regu']);
+
+// route tanding
+Route::get('/dewan-tanding/{id}', [dewanController::class, 'tanding_index']);
+Route::get('/juri-tanding/{id}', [juriController::class, 'tanding_index']);
+Route::post('/juri-tanding/kirim-poin', [juriController::class, 'kirimPoin']);
+Route::post('/dewan/kirim-penalti-tanding', [DewanController::class, 'kirim_penalti_tanding']);
+
+// route post
+
+// route testing listen
+Route::get('/test-listen', function () {
+    return view('testListen');
+});

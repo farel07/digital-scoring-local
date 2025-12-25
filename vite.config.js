@@ -9,10 +9,8 @@ export default defineConfig({
         }),
     ],
     server: {
-        host: '0.0.0.0', // Wajib agar bisa diakses dari jaringan
-        origin: 'http://192.168.18.204:5173', // Ganti IP ini dengan IP komputer Anda
-         cors: true // Tambahkan ini untuk mengaktifkan CORS
-
+        host: "0.0.0.0", // Wajib agar bisa diakses dari jaringan
+        origin: "http://192.168.110.18:5173", // Ganti IP ini dengan IP komputer Anda
+        cors: true, // Tambahkan ini untuk mengaktifkan CORS
     },
-    }
-);
+});
