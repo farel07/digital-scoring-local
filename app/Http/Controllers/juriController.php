@@ -97,4 +97,74 @@ class juriController extends Controller
             return response()->json(['status' => 'ignored']);
         }
     }
+
+
+    public function index_ganda($userId)
+    {
+        // Get active match for this user
+        $pertandingan = \App\Helpers\MatchResolver::getActiveMatchForUser($userId);
+
+        if (!$pertandingan) {
+            return response()->view('errors.no-active-match', [
+                'message' => 'Tidak ada pertandingan yang sedang berlangsung di arena Anda.'
+            ], 404);
+        }
+
+        $user = \App\Models\User::find($userId);
+
+        return view('seni.ganda.juri', [
+            'id' => $pertandingan->id,
+            'user' => $user,
+            'pertandingan' => $pertandingan
+        ]);
+    }
+
+    public function kirim_poin_ganda(Request $request)
+    {
+        $validatedData = $request->validate([
+            'user_id' => 'required|integer|exists:users,id',
+            'pertandingan_id' => 'required|integer|exists:pertandingan,id',
+            'teknik' => 'required|numeric|min:0|max:0.30',
+            'kekuatan' => 'required|numeric|min:0|max:0.30',
+            'penampilan' => 'required|numeric|min:0|max:0.30',
+        ]);
+
+        try {
+            // Validate user has access to this match
+            if (!\App\Helpers\MatchResolver::validateUserAccess($validatedData['user_id'], $validatedData['pertandingan_id'])) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Anda tidak memiliki akses ke pertandingan ini'
+                ], 403);
+            }
+
+            $scores = [
+                'teknik' => $validatedData['teknik'],
+                'kekuatan' => $validatedData['kekuatan'],
+                'penampilan' => $validatedData['penampilan']
+            ];
+
+            $realtimeService = new \App\Services\RealtimeService();
+            $judgeScore = $realtimeService->addJudgeScore(
+                $validatedData['pertandingan_id'],
+                $validatedData['user_id'],
+                $scores
+            );
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Poin berhasil dikirim',
+                'data' => [
+                    'judge_id' => $judgeScore->user_id,
+                    'scores' => $scores,
+                    'total' => $judgeScore->total
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal mengirim poin: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }
