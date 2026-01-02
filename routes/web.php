@@ -45,7 +45,32 @@ Route::get('/juri-tanding/{id}', [juriController::class, 'tanding_index']);
 Route::post('/juri-tanding/kirim-poin', [juriController::class, 'kirimPoin']);
 Route::post('/dewan/kirim-penalti-tanding', [DewanController::class, 'kirim_penalti_tanding']);
 
-// route post
+
+// route seni ganda 
+route::get('/juri-seni-ganda/{id}', [juriController::class, 'index_ganda']);
+route::post('/juri-seni-ganda/kirim-poin', [juriController::class, 'kirim_poin_ganda']);
+
+Route::get('/dewan-seni-ganda/{id}', [dewanController::class, 'index_ganda']);
+Route::post('/dewan-seni-ganda/kirim-penalti', [dewanController::class, 'kirim_penalti_ganda']);
+
+Route::get('/dewan-operator-seni-ganda/{id}', [dewanOperatorController::class, 'index_ganda']);
+
+// API route for getting events (realtime simulation)
+Route::get('/api/seni/ganda/events/{matchId}', [App\Http\Controllers\SeniGandaApiController::class, 'getEvents']);
+
+// route seni tunggal/regu
+Route::get('/juri-seni-tunggal-regu/{user_id}', [juriController::class, 'index_tunggal_regu']);
+Route::post('/seni/tunggal-regu/add-error', [juriController::class, 'addMoveError']);
+Route::post('/seni/tunggal-regu/set-category', [juriController::class, 'setCategoryScore']);
+
+Route::get('/dewan-seni-tunggal-regu/{user_id}', [dewanController::class, 'index_ganda']); // Reuse ganda dewan (same penalty system)
+
+// API route for tunggal/regu events
+Route::get('/api/seni/tunggal-regu/events/{matchId}', [App\Http\Controllers\TunggalReguApiController::class, 'getEvents']);
+
+// Operator view for tunggal/regu
+Route::get('/dewan-operator-seni-tunggal-regu/{id}', [dewanOperatorController::class, 'index_tunggal_regu']);
+
 
 // route testing listen
 Route::get('/test-listen', function () {

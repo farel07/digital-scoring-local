@@ -7,6 +7,9 @@ use App\Events\KirimPoinSeniTR;
 use App\Events\KirimPoinTanding;
 use Illuminate\Support\Facades\Cache; // Jangan lupa import ini
 use Illuminate\Support\Facades\Log; // Import Log
+use App\Helpers\MatchResolver; // Add this
+use App\Services\TunggalReguService; // Add this
+use App\Services\RealtimeService; // Add this if not already present
 
 
 
@@ -16,6 +19,110 @@ class juriController extends Controller
     public function index($id)
     {
         return view('seni.tunggal_regu.juri', ['id' => $id]);
+    }
+
+    public function index_tunggal_regu($userId)
+    {
+        // Get active match for this user
+        $pertandingan = \App\Helpers\MatchResolver::getActiveMatchForUser($userId);
+
+        if (!$pertandingan) {
+            return response()->view('errors.no-active-match', [
+                'message' => 'Tidak ada pertandingan yang sedang berlangsung di arena Anda.'
+            ], 404);
+        }
+
+        $user = \App\Models\User::find($userId);
+
+        // Determine max jurus based on match type
+        $maxJurus = $pertandingan->kelas->jenis_pertandingan === 'tunggal' ? 14 : 12;
+
+        return view('seni.tunggal_regu.juri', [
+            'id' => $pertandingan->id,
+            'user' => $user,
+            'pertandingan' => $pertandingan,
+            'maxJurus' => $maxJurus,
+            'matchType' => $pertandingan->kelas->jenis_pertandingan
+        ]);
+    }
+
+    public function addMoveError(Request $request)
+    {
+        $validated = $request->validate([
+            'pertandingan_id' => 'required|integer|exists:pertandingan,id',
+            'user_id' => 'required|integer|exists:users,id',
+            'jurus_number' => 'required|integer|min:1'
+        ]);
+
+        // Validate user has access to this match
+        if (!\App\Helpers\MatchResolver::validateUserAccess($validated['user_id'], $validated['pertandingan_id'])) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Anda tidak memiliki akses ke pertandingan ini'
+            ], 403);
+        }
+
+        $service = new \App\Services\TunggalReguService();
+        $score = $service->addMoveError(
+            $validated['pertandingan_id'],
+            $validated['user_id'],
+            $validated['jurus_number']
+        );
+
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'total_errors' => $score->total_errors,
+                'correctness_score' => $score->correctness_score,
+                'total_score' => $score->total_score,
+                'errors_per_jurus' => $score->errors_per_jurus
+            ]
+        ]);
+    }
+
+    public function setCategoryScore(Request $request)
+    {
+        $validated = $request->validate([
+            'pertandingan_id' => 'required|integer|exists:pertandingan,id',
+            'user_id' => 'required|integer|exists:users,id',
+            'score' => 'required|numeric|min:0.01|max:0.10',
+            'current_jurus' => 'required|integer'
+        ]);
+
+        // Validate user has access
+        if (!\App\Helpers\MatchResolver::validateUserAccess($validated['user_id'], $validated['pertandingan_id'])) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Anda tidak memiliki akses ke pertandingan ini'
+            ], 403);
+        }
+
+        // Get max jurus for this match
+        $pertandingan = \App\Models\Pertandingan::find($validated['pertandingan_id']);
+        $maxJurus = $pertandingan->kelas->jenis_pertandingan === 'tunggal' ? 14 : 12;
+
+        if ($validated['current_jurus'] > $maxJurus) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Category score only valid for first ' . $maxJurus . ' jurus'
+            ], 400);
+        }
+
+        $service = new \App\Services\TunggalReguService();
+        $score = $service->setCategoryScore(
+            $validated['pertandingan_id'],
+            $validated['user_id'],
+            $validated['score'],
+            $maxJurus
+        );
+
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'category_score' => $score->category_score,
+                'total_score' => $score->total_score
+            ]
+        ]);
     }
 
     public function kirim_poin_seni_tunggal_regu(Request $request)
@@ -95,6 +202,76 @@ class juriController extends Controller
             }
 
             return response()->json(['status' => 'ignored']);
+        }
+    }
+
+
+    public function index_ganda($userId)
+    {
+        // Get active match for this user
+        $pertandingan = \App\Helpers\MatchResolver::getActiveMatchForUser($userId);
+
+        if (!$pertandingan) {
+            return response()->view('errors.no-active-match', [
+                'message' => 'Tidak ada pertandingan yang sedang berlangsung di arena Anda.'
+            ], 404);
+        }
+
+        $user = \App\Models\User::find($userId);
+
+        return view('seni.ganda.juri', [
+            'id' => $pertandingan->id,
+            'user' => $user,
+            'pertandingan' => $pertandingan
+        ]);
+    }
+
+    public function kirim_poin_ganda(Request $request)
+    {
+        $validatedData = $request->validate([
+            'user_id' => 'required|integer|exists:users,id',
+            'pertandingan_id' => 'required|integer|exists:pertandingan,id',
+            'teknik' => 'required|numeric|min:0|max:0.30',
+            'kekuatan' => 'required|numeric|min:0|max:0.30',
+            'penampilan' => 'required|numeric|min:0|max:0.30',
+        ]);
+
+        try {
+            // Validate user has access to this match
+            if (!\App\Helpers\MatchResolver::validateUserAccess($validatedData['user_id'], $validatedData['pertandingan_id'])) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Anda tidak memiliki akses ke pertandingan ini'
+                ], 403);
+            }
+
+            $scores = [
+                'teknik' => $validatedData['teknik'],
+                'kekuatan' => $validatedData['kekuatan'],
+                'penampilan' => $validatedData['penampilan']
+            ];
+
+            $realtimeService = new \App\Services\RealtimeService();
+            $judgeScore = $realtimeService->addJudgeScore(
+                $validatedData['pertandingan_id'],
+                $validatedData['user_id'],
+                $scores
+            );
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Poin berhasil dikirim',
+                'data' => [
+                    'judge_id' => $judgeScore->user_id,
+                    'scores' => $scores,
+                    'total' => $judgeScore->total
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal mengirim poin: ' . $e->getMessage()
+            ], 500);
         }
     }
 }

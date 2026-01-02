@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tidak Ada Pertandingan Aktif</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+    <div class="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
+        <div class="mb-4">
+            <svg class="mx-auto h-16 w-16 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+        </div>
+        <h1 class="text-2xl font-bold text-gray-800 mb-2">Tidak Ada Pertandingan Aktif</h1>
+        <p class="text-gray-600 mb-6">
+            {{ $message ?? 'Tidak ada pertandingan yang sedang berlangsung di arena Anda saat ini.' }}
+        </p>
+        <div class="text-sm text-gray-500">
+            <p>Silakan hubungi operator jika ada pertanyaan.</p>
+        </div>
+        <div class="mt-6">
+            <a href="javascript:history.back()" class="inline-block bg-blue-500 hover:bg-blue-600 text-white font-semibold px-6 py-2 rounded-lg transition-colors">
+                Kembali
+            </a>
+        </div>
+    </div>
+</body>
+</html>

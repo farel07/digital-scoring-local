@@ -10,9 +10,10 @@
 </head>
 <body class="bg-gradient-to-br from-red-50 to-indigo-100 min-h-screen">
 
-    <input type="hidden" id="pertandingan_id" value="1">
-    <input type="hidden" id="poinInput" value="-0.01">
-    <input type="hidden" id="filterInput" value="blue">
+    <input type="hidden" id="pertandingan_id" value="{{ $pertandingan->id ?? 1 }}">
+    <input type="hidden" id="user_id" value="{{ $user->id ?? 1 }}">
+    <input type="hidden" id="max_jurus" value="{{ $maxJurus ?? 14 }}">
+    <input type="hidden" id="match_type" value="{{ $matchType ?? 'tunggal' }}">
 
     <div class="container mx-auto p-4 max-w-7xl">
         <!-- Header -->
@@ -38,7 +39,7 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
             <!-- Wrong Move Card -->
             <div class="bg-red-500 rounded-xl shadow-md p-8 flex flex-col items-center justify-center min-h-64">
-                <button id="wrongMoveBtn" onclick="kirim_poin()" class="text-white font-bold py-8 px-12 text-3xl transition-colors duration-200 w-full h-full">
+                <button id="wrongMoveBtn" class="text-white font-bold py-8 px-12 text-3xl transition-colors duration-200 w-full h-full">
                     <div class="text-6xl mb-4">✗</div>
                     Wrong Move
                 </button>
@@ -94,14 +95,20 @@
         </div>
     </div>
 
-    <script src="/js/sendEventSeni.js"></script>
     <script>
         // Game state
         let currentMove = 1;
         let moveErrors = {}; // Track errors per move
-        let totalCategoryScore = 0.00; // Category score (can be changed within moves 1-14)
+        let totalCategoryScore = 0.00; // Category score (can be changed within moves 1-MAX_JURUS)
         const penaltyPerError = 0.01;
         const baseScore = 9.90;
+        
+        // Get dynamic values from controller
+        const MAX_JURUS = parseInt(document.getElementById('max_jurus').value);
+        const MATCH_TYPE = document.getElementById('match_type').value;
+        const PERTANDINGAN_ID = parseInt(document.getElementById('pertandingan_id').value);
+        const USER_ID = parseInt(document.getElementById('user_id').value);
+        const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
         // Initialize first move
         moveErrors[currentMove] = 0;
@@ -121,8 +128,8 @@
         function generateScoreButtons() {
             scoreButtonsContainer.innerHTML = '';
             
-            // Show buttons if we're within moves 1-14
-            if (currentMove <= 14) {
+            // Show buttons if we're within allowed jurus limit
+            if (currentMove <= MAX_JURUS) {
                 for (let i = 1; i <= 10; i++) {
                     const score = (i * 0.01).toFixed(2);
                     const button = document.createElement('button');
@@ -139,18 +146,18 @@
                     scoreButtonsContainer.appendChild(button);
                 }
             } else {
-                // Show disabled message for moves beyond 14
+                // Show disabled message for moves beyond MAX_JURUS
                 const message = document.createElement('div');
                 message.className = 'text-center text-gray-500 italic py-4';
-                message.textContent = 'Nilai kategori hanya untuk jurus 1-14';
+                message.textContent = `Nilai kategori hanya untuk jurus 1-${MAX_JURUS}`;
                 scoreButtonsContainer.appendChild(message);
             }
         }
 
         // Select score button
         function selectScore(button, score) {
-            // Only allow selection if we're within moves 1-14
-            if (currentMove > 14) {
+            // Only allow selection if we're within allowed jurus
+            if (currentMove > MAX_JURUS) {
                 return;
             }
             
@@ -163,9 +170,13 @@
             // Highlight selected button
             button.className = 'px-3 py-2 rounded-full text-sm font-medium transition-colors duration-200 bg-green-500 hover:bg-green-600 text-white';
             
-            // Update category score (can be changed anytime within moves 1-14)
+            // Update category score
             totalCategoryScore = score;
             categoryScoreEl.textContent = score.toFixed(2);
+            
+            // Send to database
+            sendCategoryScore(score);
+            
             updateDisplay();
         }
 
@@ -188,12 +199,68 @@
             finalScoreEl.textContent = finalScore.toFixed(2);
         }
 
+        // Send error to database
+        function sendMoveError(jurusNumber) {
+            fetch('/seni/tunggal-regu/add-error', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': CSRF_TOKEN
+                },
+                body: JSON.stringify({
+                    pertandingan_id: PERTANDINGAN_ID,
+                    user_id: USER_ID,
+                    jurus_number: jurusNumber
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    console.log('Error saved:', data.data);
+                } else {
+                    console.error('Failed to save error:', data);
+                }
+            })
+            .catch(error => console.error('Network error:', error));
+        }
+
+        // Send category score to database
+        function sendCategoryScore(score) {
+            fetch('/seni/tunggal-regu/set-category', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': CSRF_TOKEN
+                },
+                body: JSON.stringify({
+                    pertandingan_id: PERTANDINGAN_ID,
+                    user_id: USER_ID,
+                    score: score,
+                    current_jurus: currentMove
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    console.log('Category score saved:', data.data);
+                } else {
+                    console.error('Failed to save category score:', data);
+                    alert(data.message || 'Gagal menyimpan category score');
+                }
+            })
+            .catch(error => console.error('Network error:', error));
+        }
+
         // Wrong move button handler
         wrongMoveBtn.addEventListener('click', () => {
             if (!moveErrors[currentMove]) {
                 moveErrors[currentMove] = 0;
             }
             moveErrors[currentMove]++;
+            
+            // Send to database
+            sendMoveError(currentMove);
+            
             updateDisplay();
                 
             // Add visual feedback
