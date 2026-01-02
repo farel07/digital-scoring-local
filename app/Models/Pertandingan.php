@@ -91,4 +91,12 @@ class Pertandingan extends Model
     {
         return $this->hasMany(Penalty::class, 'pertandingan_id')->where('status', 'active');
     }
+
+    /**
+     * Get the tunggal/regu scores for the pertandingan.
+     */
+    public function tunggalReguScores()
+    {
+        return $this->hasMany(TunggalReguScore::class, 'pertandingan_id');
+    }
 }

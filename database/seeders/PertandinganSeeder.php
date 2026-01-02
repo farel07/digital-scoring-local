@@ -30,10 +30,18 @@ class PertandinganSeeder extends Seeder
                 'updated_at' => now(),
             ],
             [
-                'kelas_id' => 3, // Seni Tunggal Putra
+                'kelas_id' => 3, // Seni Tunggal Putra (14 jurus)
                 'arena_id' => 1, // Arena A
                 'next_match_id' => null,
-                'status' => 'belum_dimulai',
+                'status' => 'berlangsung', // ACTIVE TUNGGAL MATCH!
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'kelas_id' => 5, // Seni Regu Putra (12 jurus)
+                'arena_id' => 2, // Arena B
+                'next_match_id' => null,
+                'status' => 'berlangsung', // ACTIVE REGU MATCH!
                 'created_at' => now(),
                 'updated_at' => now(),
             ],

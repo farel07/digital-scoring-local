@@ -37,6 +37,18 @@ class KelasSeeder extends Seeder
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
+            [
+                'nama_kelas' => 'Seni Regu Putra',
+                'jenis_pertandingan' => 'regu',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'nama_kelas' => 'Seni Regu Putri',
+                'jenis_pertandingan' => 'regu',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
         ];
 
         DB::table('kelas')->insert($kelas);
