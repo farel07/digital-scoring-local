@@ -1,4 +1,12 @@
 @extends('main.main')
+
+@section('head')
+    {{-- Meta tag untuk pertandingan ID agar JavaScript tahu match mana yang sedang dimainkan --}}
+    <meta name="pertandingan-id" content="{{ $id }}">
+    {{-- Meta tag untuk user ID agar JavaScript tahu juri mana yang sedang login --}}
+    <meta name="user-id" content="{{ auth()->user()->id }}">
+@endsection
+
 @section('content')
     <div class="container mt-2 mb-2 rounded pb-4" style="background-color: rgb(216, 216, 216)">
         <div class="container">
@@ -91,6 +99,32 @@
         </div>
     </div>
 
-    <script src="/js/sendEventJuriTanding.js"></script>
+    {{-- Validation Popup Modal --}}
+    <div class="modal fade" id="validationModal" tabindex="-1" role="dialog" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-warning text-white">
+                    <h5 class="modal-title w-100 text-center">⚠️ Validation Request</h5>
+                </div>
+                <div class="modal-body p-4">
+                    <p id="validation-description" class="text-center mb-4 fs-5 fw-bold">Dewan requests validation...</p>
+                    <div class="d-grid gap-3">
+                        <button class="btn btn-success btn-lg py-3 fw-bold" onclick="submitVote('SAH')">
+                            ✅ SAH
+                        </button>
+                        <button class="btn btn-danger btn-lg py-3 fw-bold" onclick="submitVote('TIDAK SAH')">
+                            ❌ TIDAK SAH
+                        </button>
+                        <button class="btn btn-secondary btn-lg py-3 fw-bold" onclick="submitVote('NETRAL')">
+                            ⚪ NETRAL
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
+    <script src="/js/sendEventJuriTanding.js"></script>
+    <script src="/js/listenTanding.js"></script>
+    <script src="/js/validationJuri.js"></script>
 @endsection

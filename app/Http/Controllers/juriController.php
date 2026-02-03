@@ -2,13 +2,20 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
+use App\Models\TandingMatch;
+use App\Models\TandingScore;
+use App\Models\ValidationRequest;
+use App\Models\ValidationVote;
 use Illuminate\Http\Request;
 use App\Events\KirimPoinSeniTR;
 use App\Events\KirimPoinTanding;
-use Illuminate\Support\Facades\Cache; // Jangan lupa import ini
-use Illuminate\Support\Facades\Log; // Import Log
+use App\Events\ValidationVoteReceived;
+use App\Events\ValidationCompleted;
 use App\Helpers\MatchResolver; // Add this
 use App\Services\TunggalReguService; // Add this
+use Illuminate\Support\Facades\Log; // Import Log
+use Illuminate\Support\Facades\Cache; // Jangan lupa import ini
 use App\Services\RealtimeService; // Add this if not already present
 
 
@@ -154,6 +161,20 @@ class juriController extends Controller
 
     public function tanding_index($id)
     {
+        // Validasi: Cek apakah user punya akses ke pertandingan ini
+        $user_id = auth()->user()->id;
+        $user = User::find($user_id);
+
+        if (!$user->hasAccessToPertandingan($id)) {
+            $pertandingan = \App\Models\Pertandingan::find($id);
+
+            return response()->view('errors.403', [
+                'message' => 'Anda tidak memiliki akses ke pertandingan ini.',
+                'your_arenas' => $user->arenas->pluck('arena_name')->implode(', '),
+                'match_arena' => $pertandingan->arena->arena_name ?? 'Unknown',
+            ], 403);
+        }
+
         return view('tanding.juri', ['id' => $id]);
     }
 
@@ -161,9 +182,13 @@ class juriController extends Controller
     {
         $pertandinganId = $request->input('pertandingan_id');
         $filter = $request->input('filter');
-        $type = $request->input('type');
+        $type = strtoupper($request->input('type')); // Convert to uppercase for consistency
         $juriId = $request->input('juri_id');
         $poinValue = $request->input('poin');
+
+        // Get juri number from user role (juri_1 -> 1, juri_2 -> 2, etc)
+        $user = User::find($juriId);
+        $juriNumber = $this->getJuriNumber($user->role);
 
         $cacheKey = "tanding_{$pertandinganId}_{$filter}_{$type}";
         $pendingVote = Cache::get($cacheKey);
@@ -176,13 +201,34 @@ class juriController extends Controller
                 'poin' => $poinValue
             ], now()->addSeconds(3));
 
+            // DATABASE PERSISTENCE: Get or create tanding match
+            $tandingMatch = TandingMatch::firstOrCreate(
+                ['pertandingan_id' => $pertandinganId],
+                [
+                    'current_round' => 1,
+                    'match_status' => 'in_progress',
+                    'started_at' => now()
+                ]
+            );
+
+            // Save score to database (status: input)
+            TandingScore::create([
+                'tanding_match_id' => $tandingMatch->id,
+                'judge_id' => $juriId,
+                'team' => $filter,
+                'technique' => $type,
+                'points' => $type === 'TENDANG' ? 2 : 1, // Fixed: uppercase comparison
+                'round' => $tandingMatch->current_round,
+                'status' => 'input',
+            ]);
+
             // 1. BROADCAST INPUT (Agar lampu juri di layar menyala)
             broadcast(new KirimPoinTanding([
                 'type' => $type,
                 'poin' => $poinValue,
                 'pertandingan_id' => $pertandinganId,
                 'filter' => $filter,
-                'juri_id' => $juriId,
+                'juri_id' => $juriNumber, // Send juri number (1,2,3) not user_id
                 'status' => 'input' // <--- Status Input
             ]));
 
@@ -192,13 +238,46 @@ class juriController extends Controller
 
             if ($pendingVote['first_juri_id'] != $juriId) {
 
+                // DATABASE PERSISTENCE: Get match and save second juri score
+                $tandingMatch = TandingMatch::where('pertandingan_id', $pertandinganId)->first();
+
+                if ($tandingMatch) {
+                    // DELETE all 'input' records for this technique/team combo
+                    // (We don't need to keep individual input records)
+                    TandingScore::where('tanding_match_id', $tandingMatch->id)
+                        ->where('team', $filter)
+                        ->where('technique', $type)
+                        ->where('status', 'input')
+                        ->delete();
+
+                    // CREATE ONLY ONE validated score record
+                    TandingScore::create([
+                        'tanding_match_id' => $tandingMatch->id,
+                        'judge_id' => $juriId, // Can use either juri's ID, or leave null
+                        'team' => $filter,
+                        'technique' => $type,
+                        'points' => $type === 'TENDANG' ? 2 : 1,
+                        'round' => $tandingMatch->current_round,
+                        'status' => 'sah', // Directly mark as validated
+                    ]);
+
+                    // Update total score
+                    $points = $type === 'TENDANG' ? 2 : 1; // Fixed: uppercase comparison
+
+                    if ($filter === 'blue') {
+                        $tandingMatch->increment('blue_total_score', $points);
+                    } else {
+                        $tandingMatch->increment('red_total_score', $points);
+                    }
+                }
+
                 // 1. BROADCAST INPUT JURI KEDUA (Agar lampu juri ini juga menyala)
                 broadcast(new KirimPoinTanding([
                     'type' => $type,
                     'poin' => $poinValue,
                     'pertandingan_id' => $pertandinganId,
                     'filter' => $filter,
-                    'juri_id' => $juriId,
+                    'juri_id' => $juriNumber, // Send juri number (1,2,3) not user_id
                     'status' => 'input' // <--- Status Input
                 ]));
 
@@ -219,6 +298,7 @@ class juriController extends Controller
             return response()->json(['status' => 'ignored']);
         }
     }
+
 
 
     public function index_ganda($userId)
@@ -303,5 +383,83 @@ class juriController extends Controller
                 'message' => 'Gagal mengirim poin: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Get juri display number from role (juri_1 -> 1, juri_2 -> 2, etc)
+     */
+    private function getJuriNumber($role)
+    {
+        // Extract number from role (juri_1 -> 1, juri_2 -> 2, juri_3 -> 3, juri_4 -> 4)
+        if (preg_match('/juri_(\d+)/', $role, $matches)) {
+            return (int)$matches[1];
+        }
+        return 1; // Default to 1 if role doesn't match pattern
+    }
+
+    /**
+     * Submit validation vote from juri
+     */
+    public function submitValidationVote(Request $request)
+    {
+        $validationRequestId = $request->input('validation_request_id');
+        $vote = $request->input('vote'); // 'SAH', 'TIDAK SAH', 'NETRAL'
+        $juriId = auth()->user()->id;
+
+        // Check if this juri already voted
+        $existingVote = ValidationVote::where('validation_request_id', $validationRequestId)
+            ->where('juri_id', $juriId)
+            ->first();
+
+        if ($existingVote) {
+            return response()->json([
+                'status' => 'already_voted',
+                'message' => 'Anda sudah memberikan vote untuk request ini'
+            ], 400);
+        }
+
+        // Save vote
+        ValidationVote::create([
+            'validation_request_id' => $validationRequestId,
+            'juri_id' => $juriId,
+            'vote' => $vote
+        ]);
+
+        // Get validation request
+        $validationRequest = ValidationRequest::find($validationRequestId);
+
+        // Broadcast vote received
+        broadcast(new ValidationVoteReceived([
+            'validation_request_id' => $validationRequestId,
+            'juri_id' => $juriId,
+            'vote' => $vote,
+            'pertandingan_id' => $validationRequest->tandingMatch->pertandingan_id
+        ]));
+
+        // Check if we have enough votes (2 or 3)
+        $voteCount = $validationRequest->votes()->count();
+
+        if ($voteCount >= 2) {
+            $result = $validationRequest->calculateResult();
+
+            $validationRequest->update([
+                'result' => $result,
+                'status' => 'completed'
+            ]);
+
+            // Broadcast completion
+            broadcast(new ValidationCompleted([
+                'validation_request_id' => $validationRequestId,
+                'result' => $result,
+                'validation_type' => $validationRequest->validation_type,
+                'team' => $validationRequest->team,
+                'pertandingan_id' => $validationRequest->tandingMatch->pertandingan_id
+            ]));
+        }
+
+        return response()->json([
+            'status' => 'voted',
+            'vote' => $vote
+        ]);
     }
 }

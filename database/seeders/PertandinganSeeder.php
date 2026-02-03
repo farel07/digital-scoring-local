@@ -39,7 +39,7 @@ class PertandinganSeeder extends Seeder
             ],
             [
                 'kelas_id' => 5, // Seni Regu Putra (12 jurus)
-                'arena_id' => 2, // Arena B
+                'arena_id' => 1, // Arena A
                 'next_match_id' => null,
                 'status' => 'berlangsung', // ACTIVE REGU MATCH!
                 'created_at' => now(),

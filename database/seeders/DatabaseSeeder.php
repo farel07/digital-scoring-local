@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             ArenaSeeder::class,
             KelasSeeder::class,
             PertandinganSeeder::class,
+            TandingPertandinganSeeder::class,
         ]);
 
         $this->command->info('✅ Database seeded successfully!');

@@ -8,6 +8,7 @@ use App\Http\Controllers\dewanController;
 use App\Http\Controllers\penilaianController;
 use App\Http\Controllers\SuperadminController;
 use App\Http\Controllers\OperatorController;
+use App\Http\Controllers\AuthController;
 
 /*
 |--------------------------------------------------------------------------
@@ -23,6 +24,11 @@ use App\Http\Controllers\OperatorController;
 Route::get('/', function () {
     return view('welcome');
 });
+
+// Authentication Routes
+Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
+Route::post('/login', [AuthController::class, 'login']);
+Route::get('/logout', [AuthController::class, 'logout'])->name('logout');
 
 Route::get('/superadmin', function () {
     return view('superadmin.superadmin');
@@ -53,6 +59,11 @@ Route::get('/dewan-tanding/{id}', [dewanController::class, 'tanding_index']);
 Route::get('/juri-tanding/{id}', [juriController::class, 'tanding_index']);
 Route::post('/juri-tanding/kirim-poin', [juriController::class, 'kirimPoin']);
 Route::post('/dewan/kirim-penalti-tanding', [DewanController::class, 'kirim_penalti_tanding']);
+
+// Validation request routes
+Route::post('/dewan-tanding/request-validation', [dewanController::class, 'requestValidation']);
+Route::get('/dewan-tanding/last-validation/{id}', [dewanController::class, 'getLastValidation']);
+Route::post('/juri-tanding/submit-validation-vote', [juriController::class, 'submitValidationVote']);
 
 
 // route seni ganda 
