@@ -20,17 +20,34 @@
         <div class="bg-white rounded-xl shadow-md p-6 mb-6">
             <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-4">
-                    <div class="w-16 h-16 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center text-white font-bold text-xl">
-                        AS
+                    @php
+                        $firstPlayer = $currentSidePlayers->first();
+                        $contingent = $firstPlayer->player_contingent ?? '-';
+                        $initials = $firstPlayer ? strtoupper(substr($firstPlayer->player_name, 0, 2)) : 'XX';
+                        $sideColor = $currentSide == 1 ? 'blue' : 'red';
+                    @endphp
+                    <div class="w-16 h-16 bg-gradient-to-br from-{{ $sideColor }}-500 to-{{ $sideColor }}-600 rounded-full flex items-center justify-center text-white font-bold text-xl">
+                        {{ $initials }}
                     </div>
                     <div>
-                        <h2 class="text-xl font-bold text-gray-800">Ahmad Syahrul</h2>
-                        <p class="text-gray-600">Kontingen DKI Jakarta</p>
+                        <h2 class="text-xl font-bold text-gray-800">
+                            @foreach($currentSidePlayers as $player)
+                                {{ $player->player_name }}@if(!$loop->last), @endif
+                            @endforeach
+                        </h2>
+                        <p class="text-gray-600">Kontingen {{ $contingent }} - Tim {{ $currentSide == 1 ? '🔵' : '🔴' }}</p>
                     </div>
                 </div>
-                <div class="text-right">
-                    <h1 class="text-2xl font-bold text-red-600">Dewasa Tunggal Putra</h1>
-                    <p class="text-gray-600">Kategori Tanding</p>
+                <div class="flex items-center gap-4">
+                    <div class="text-right">
+                        <h1 class="text-2xl font-bold text-{{ $sideColor }}-600">{{ $pertandingan->kelas->nama_kelas ?? 'Kelas' }}</h1>
+                        <p class="text-gray-600">{{ ucfirst($matchType) }} - {{ $pertandingan->arena->arena_name ?? 'Arena' }}</p>
+                    </div>
+                    <!-- Switch Side Button -->
+                    <a href="?side={{ $opponentSide }}" 
+                       class="bg-{{ $currentSide == 1 ? 'red' : 'blue' }}-600 hover:bg-{{ $currentSide == 1 ? 'red' : 'blue' }}-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
+                        Ganti ke Tim {{ $opponentSide == 1 ? '🔵' : '🔴' }}
+                    </a>
                 </div>
             </div>
         </div>

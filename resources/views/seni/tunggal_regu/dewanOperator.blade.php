@@ -135,8 +135,16 @@
                     panelCells[0].textContent = data.correctness_score.toFixed(2);
                     panelCells[1].textContent = data.category_score.toFixed(2);
                     panelCells[2].textContent = data.total_score.toFixed(2);
-                    
-                    // Flash animation
+                }
+                
+                // Check if this judge's data was updated (compare with stored data)
+                const previousData = judgeScores[juriNumber];
+                const hasChanged = !previousData || 
+                    previousData.correctness_score !== data.correctness_score ||
+                    previousData.category_score !== data.category_score;
+                
+                // Only flash if this specific judge's score changed
+                if (hasChanged && panelCells.length >= 3) {
                     panelCells[0].classList.add('highlight-score');
                     setTimeout(() => panelCells[0].classList.remove('highlight-score'), 1000);
                 }

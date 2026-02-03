@@ -33,12 +33,60 @@ class TunggalReguScore extends Model
     protected function casts(): array
     {
         return [
-            'errors_per_jurus' => 'array',
+            // Remove errors_per_jurus casting, will use accessor/mutator instead
             'total_errors' => 'integer',
             'correctness_score' => 'decimal:2',
             'category_score' => 'decimal:2',
             'total_score' => 'decimal:2',
         ];
+    }
+
+    /**
+     * Get errors_per_jurus attribute (Accessor).
+     * Converts JSON string from database to PHP array.
+     */
+    public function getErrorsPerJurusAttribute($value)
+    {
+        if ($value === null) {
+            return [];
+        }
+
+        // If already an array (after setting), return as-is
+        if (is_array($value)) {
+            return $value;
+        }
+
+        // Decode JSON string to array
+        $decoded = json_decode($value, true);
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    /**
+     * Set errors_per_jurus attribute (Mutator).
+     * Converts PHP array to JSON string for database storage.
+     */
+    public function setErrorsPerJurusAttribute($value)
+    {
+        // If null, set as empty JSON array
+        if ($value === null) {
+            $this->attributes['errors_per_jurus'] = '[]';
+            return;
+        }
+
+        // If already a string (JSON), store as-is
+        if (is_string($value)) {
+            $this->attributes['errors_per_jurus'] = $value;
+            return;
+        }
+
+        // If array, encode to JSON
+        if (is_array($value)) {
+            $this->attributes['errors_per_jurus'] = json_encode($value);
+            return;
+        }
+
+        // Fallback: empty array
+        $this->attributes['errors_per_jurus'] = '[]';
     }
 
     /**

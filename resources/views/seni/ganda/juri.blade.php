@@ -15,16 +15,27 @@
     <header class="bg-white border-b border-gray-200 p-4">
         <div class="flex justify-between items-center">
             <div class="flex-col items-center space-x-3">
-                <div class="text-red-600 px-3 py-1 rounded font-bold">
-                    MALAYSIA
+                @php
+                    $contingent = $currentSidePlayers->first()->player_contingent ?? '-';
+                    $sideColor = $currentSide == 1 ? 'blue' : 'red';
+                @endphp
+                <div class="text-{{ $sideColor }}-600 px-3 py-1 rounded font-bold">
+                    {{ strtoupper($contingent) }} - TIM {{ $currentSide == 1 ? '🔵' : '🔴' }}
                 </div>
                 <div class="flex items-start gap-3">
-                    <span class="text-red-700 text-2xl font-medium">Ahmad Faizal,</span>
-                    <span class="text-red-700 text-2xl font-medium">Ahmad Faizal,</span>
-                    {{-- <span class="text-blue-700 text-2xl font-medium">Ahmad Faizal</span> --}}
+                    @foreach($currentSidePlayers as $player)
+                        <span class="text-{{ $sideColor }}-700 text-2xl font-medium">{{ $player->player_name }}@if(!$loop->last),@endif</span>
+                    @endforeach
                 </div>
             </div>
-            <div class="text-gray-600 text-sm">Arena A - Juri 1</div>
+            <div class="flex items-center gap-4">
+                <div class="text-gray-600 text-sm">Arena {{ $pertandingan->arena->arena_name ?? '-' }} - {{ $user->role }}</div>
+                <!-- Switch Side Button -->
+                <a href="?side={{ $opponentSide }}" 
+                   class="bg-{{ $currentSide == 1 ? 'red' : 'blue' }}-600 hover:bg-{{ $currentSide == 1 ? 'red' : 'blue' }}-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
+                    Ganti ke Tim {{ $opponentSide == 1 ? '🔵' : '🔴' }}
+                </a>
+            </div>
         </div>
     </header>
 
@@ -224,10 +235,14 @@
             
             // Show current user ID
             const userId = getUserId();
-            if (userId) {
-                console.log('User ID:', userId);
-                console.log('Match ID:', getMatchId());
-            }
+            const matchId = getMatchId();
+            
+            console.log('=== JURI SENI GANDA DEBUG INFO ===');
+            console.log('User ID:', userId);
+            console.log('Match ID:', matchId);
+            console.log('Arena:', '{{ $pertandingan->arena->arena_name ?? "Unknown" }}');
+            console.log('Pertandingan:', '{{ $pertandingan->kelas->nama_kelas ?? "Unknown" }}');
+            console.log('=====================================');
         });
     </script>
 <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97ac622534fc9fe5',t:'MTc1NzE0NTEwOS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>

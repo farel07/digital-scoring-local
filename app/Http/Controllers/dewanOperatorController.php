@@ -18,56 +18,48 @@ class dewanOperatorController extends Controller
      */
     public function index_ganda($id)
     {
-        // Check if mode=user is passed
-        $mode = request()->query('mode');
+        // $id is ALWAYS user_id, resolve to active match
+        $pertandingan = \App\Helpers\MatchResolver::getActiveMatchForUser($id);
 
-        if ($mode === 'user') {
-            // $id is user_id, get their active match
-            $pertandingan = \App\Helpers\MatchResolver::getActiveMatchForUser($id);
-
-            if (!$pertandingan) {
-                return response()->view('errors.no-active-match', [
-                    'message' => 'Tidak ada pertandingan yang sedang berlangsung di arena Anda.'
-                ], 404);
-            }
-
-            $id = $pertandingan->id; // Use match_id for the rest
+        if (!$pertandingan) {
+            return response()->view('errors.no-active-match', [
+                'message' => 'Tidak ada pertandingan yang sedang berlangsung di arena Anda.'
+            ], 404);
         }
 
-        // $id is now match_id
+        // Get match_id from resolved pertandingan
+        $matchId = $pertandingan->id;
+
+        // Get jumlah juri from query parameter (default 4)
         $jumlahJuri = request()->query('jumlah', 4);
 
         return view('seni.ganda.dewanOperator', [
-            'id' => $id,
+            'id' => $matchId,
             'jumlahJuri' => $jumlahJuri
         ]);
     }
 
-    public function index_tunggal_regu($id)
+    public function index_tunggal_regu($userId)
     {
-        // Check if mode=user is passed
-        $mode = request()->query('mode');
+        // Get active match for this user (same pattern as juri)
+        $pertandingan = MatchResolver::getActiveMatchForUser($userId);
 
-        if ($mode === 'user') {
-            // $id is user_id, get their active match
-            $pertandingan = \App\Helpers\MatchResolver::getActiveMatchForUser($id);
-
-            if (!$pertandingan) {
-                return response()->view('errors.no-active-match', [
-                    'message' => 'Tidak ada pertandingan yang sedang berlangsung di arena Anda.'
-                ], 404);
-            }
-
-            $id = $pertandingan->id; // Use match_id for the rest
+        if (!$pertandingan) {
+            return response()->view('errors.no-active-match', [
+                'message' => 'Tidak ada pertandingan yang sedang berlangsung di arena Anda.'
+            ], 404);
         }
 
-        // $id is now match_id
-        $pertandingan = \App\Models\Pertandingan::with('kelas')->find($id);
+        $user = User::find($userId);
         $jumlahJuri = request()->query('jumlah', 4);
+
+        // Determine max jurus based on match type
         $maxJurus = $pertandingan->kelas->jenis_pertandingan === 'tunggal' ? 14 : 12;
 
         return view('seni.tunggal_regu.dewanOperator', [
-            'id' => $id,
+            'id' => $pertandingan->id,
+            'user' => $user,
+            'pertandingan' => $pertandingan,
             'jumlahJuri' => $jumlahJuri,
             'maxJurus' => $maxJurus,
             'matchType' => $pertandingan->kelas->jenis_pertandingan

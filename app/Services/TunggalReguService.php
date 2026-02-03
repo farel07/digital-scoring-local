@@ -26,14 +26,19 @@ class TunggalReguService
                 'user_id' => $userId,
             ],
             [
-                'errors_per_jurus' => json_encode([]), // Fix: encode to JSON string
+                'errors_per_jurus' => [], // Let Laravel handle JSON casting
                 'total_errors' => 0,
                 'category_score' => 0.00,
             ]
         );
 
-        // Get current errors array
-        $errorsPerJurus = $score->errors_per_jurus ?? [];
+        // Get current errors array and ensure it's actually an array
+        $errorsPerJurus = $score->errors_per_jurus;
+
+        // Safety guard: ensure we have an array, not a string
+        if (!is_array($errorsPerJurus)) {
+            $errorsPerJurus = [];
+        }
 
         // Initialize jurus if not exists
         if (!isset($errorsPerJurus[$jurusNumber])) {
@@ -80,7 +85,7 @@ class TunggalReguService
                 'user_id' => $userId,
             ],
             [
-                'errors_per_jurus' => json_encode([]), // Encode to JSON string initially
+                'errors_per_jurus' => [], // Let Laravel handle JSON casting
                 'total_errors' => 0,
             ]
         );
@@ -135,7 +140,7 @@ class TunggalReguService
                 'category_score' => (float) $score->category_score,
                 'total_score' => (float) $score->total_score,
                 'total_errors' => $score->total_errors,
-                'errors_per_jurus' => $score->errors_per_jurus ?? [],
+                'errors_per_jurus' => is_array($score->errors_per_jurus) ? $score->errors_per_jurus : [],
                 'last_update' => $score->updated_at->toIso8601String(),
             ];
         }

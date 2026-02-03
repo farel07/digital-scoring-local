@@ -6,6 +6,8 @@ use App\Http\Controllers\juriController;
 use App\Http\Controllers\dewanOperatorController;
 use App\Http\Controllers\dewanController;
 use App\Http\Controllers\penilaianController;
+use App\Http\Controllers\SuperadminController;
+use App\Http\Controllers\OperatorController;
 
 /*
 |--------------------------------------------------------------------------
@@ -20,6 +22,10 @@ use App\Http\Controllers\penilaianController;
 
 Route::get('/', function () {
     return view('welcome');
+});
+
+Route::get('/superadmin', function () {
+    return view('superadmin.superadmin');
 });
 
 Route::get('/send-notif', function () {
@@ -39,6 +45,9 @@ Route::get('/penilaian/{id}', [penilaianController::class, 'index']);
 Route::get('/dewan-operator/{id}', [dewanOperatorController::class, 'index']);
 Route::post('/dewan/kirim-penalti', [dewanController::class, 'kirim_pelanggaran_seni_tunggal_regu']);
 
+// Route untuk halaman operator statis (read-only schedule view)
+Route::get('/operator-static/{user_id?}', [OperatorController::class, 'index'])->name('operator-static');
+
 // route tanding
 Route::get('/dewan-tanding/{id}', [dewanController::class, 'tanding_index']);
 Route::get('/juri-tanding/{id}', [juriController::class, 'tanding_index']);
@@ -55,6 +64,17 @@ Route::post('/dewan-seni-ganda/kirim-penalti', [dewanController::class, 'kirim_p
 
 Route::get('/dewan-operator-seni-ganda/{id}', [dewanOperatorController::class, 'index_ganda']);
 
+// Route for spectators/viewers (penonton) - same pattern as dewanOperator
+Route::get('/penonton-seni-ganda/{id}', function ($id) {
+    // Get jumlah juri from query parameter (default 4)
+    $jumlahJuri = request()->query('jumlah', 4);
+
+    return view('seni.ganda.penonton', [
+        'id' => $id,
+        'jumlahJuri' => $jumlahJuri
+    ]);
+});
+
 // API route for getting events (realtime simulation)
 Route::get('/api/seni/ganda/events/{matchId}', [App\Http\Controllers\SeniGandaApiController::class, 'getEvents']);
 
@@ -63,13 +83,60 @@ Route::get('/juri-seni-tunggal-regu/{user_id}', [juriController::class, 'index_t
 Route::post('/seni/tunggal-regu/add-error', [juriController::class, 'addMoveError']);
 Route::post('/seni/tunggal-regu/set-category', [juriController::class, 'setCategoryScore']);
 
-Route::get('/dewan-seni-tunggal-regu/{user_id}', [dewanController::class, 'index_ganda']); // Reuse ganda dewan (same penalty system)
+Route::get('/dewan-seni-tunggal-regu/{user_id}', [dewanController::class, 'index_tunggal_regu']);
+Route::post('/dewan-seni-tunggal-regu/kirim-penalti', [dewanController::class, 'kirim_pelanggaran_seni_tunggal_regu']);
 
 // API route for tunggal/regu events
 Route::get('/api/seni/tunggal-regu/events/{matchId}', [App\Http\Controllers\TunggalReguApiController::class, 'getEvents']);
 
 // Operator view for tunggal/regu
 Route::get('/dewan-operator-seni-tunggal-regu/{id}', [dewanOperatorController::class, 'index_tunggal_regu']);
+
+// Route for spectators/viewers (penonton) tunggal-regu
+Route::get('/penonton-seni-tunggal-regu/{id}', function ($id) {
+    // Get jumlah juri from query parameter (default 4)
+    $jumlahJuri = request()->query('jumlah', 4);
+
+    return view('seni.tunggal_regu.penonton', [
+        'id' => $id,
+        'jumlahJuri' => $jumlahJuri
+    ]);
+});
+
+// Penalty submission for tunggal/regu
+Route::post('/dewan-seni-tunggal-regu/kirim-penalti', [dewanController::class, 'kirim_pelanggaran_seni_tunggal_regu']);
+
+
+// ==================== SUPERADMIN ROUTES ====================
+
+// Superadmin Dashboard
+Route::get('/superadmin', [SuperadminController::class, 'index']);
+
+// Arena Management API
+Route::get('/api/superadmin/arenas', [SuperadminController::class, 'getArenas']);
+Route::post('/api/superadmin/arenas', [SuperadminController::class, 'createArena']);
+Route::put('/api/superadmin/arenas/{id}', [SuperadminController::class, 'updateArena']);
+Route::delete('/api/superadmin/arenas/{id}', [SuperadminController::class, 'deleteArena']);
+
+// User Management API
+Route::get('/api/superadmin/users', [SuperadminController::class, 'getUsers']);
+Route::post('/api/superadmin/users', [SuperadminController::class, 'createUser']);
+Route::put('/api/superadmin/users/{id}', [SuperadminController::class, 'updateUser']);
+Route::delete('/api/superadmin/users/{id}', [SuperadminController::class, 'deleteUser']);
+
+// User-Arena Assignment API
+Route::get('/api/superadmin/assignments', [SuperadminController::class, 'getAssignments']);
+Route::post('/api/superadmin/assignments', [SuperadminController::class, 'createAssignment']);
+Route::delete('/api/superadmin/assignments/{arenaId}/{userId}', [SuperadminController::class, 'deleteAssignment']);
+
+// Match Management API
+Route::get('/api/superadmin/kelas', [SuperadminController::class, 'getKelas']);
+Route::get('/api/superadmin/matches', [SuperadminController::class, 'getMatches']);
+Route::post('/api/superadmin/matches', [SuperadminController::class, 'createMatch']);
+Route::post('/api/superadmin/import-matches', [SuperadminController::class, 'importMatches']);
+Route::get('/api/superadmin/matches/{id}', [SuperadminController::class, 'getMatchDetail']);
+Route::put('/api/superadmin/matches/{id}/arena', [SuperadminController::class, 'reassignMatchArena']);
+Route::put('/api/superadmin/matches/{id}/status', [SuperadminController::class, 'updateMatchStatus']);
 
 
 // route testing listen

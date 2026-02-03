@@ -26,13 +26,14 @@ class KirimPenalti implements ShouldBroadcast
     public function broadcastOn(): array
     {
         return [
-            // Channel baru khusus untuk penalti
-            new Channel('kirim-penalti-' . $this->pertandingan_id),
+            // Use same channel pattern as score updates for consistency
+            new Channel('pertandingan.' . $this->pertandingan_id),
         ];
     }
-    
+
     public function broadcastAs()
     {
-        return 'KirimPenalti';
+        // Use event name that DewanOperator listens to
+        return 'penalty.updated';
     }
 }

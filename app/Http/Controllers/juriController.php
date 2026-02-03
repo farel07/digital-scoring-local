@@ -37,12 +37,27 @@ class juriController extends Controller
         // Determine max jurus based on match type
         $maxJurus = $pertandingan->kelas->jenis_pertandingan === 'tunggal' ? 14 : 12;
 
+        // Get side parameter from URL (default to 1)
+        $side = request()->get('side', 1);
+
+        // Load players for this match
+        $pertandingan->load('players');
+
+        // Get players for current side
+        $currentSidePlayers = $pertandingan->players->where('side_number', $side);
+
+        // Get opponent side number
+        $opponentSide = $side == 1 ? 2 : 1;
+
         return view('seni.tunggal_regu.juri', [
             'id' => $pertandingan->id,
             'user' => $user,
             'pertandingan' => $pertandingan,
             'maxJurus' => $maxJurus,
-            'matchType' => $pertandingan->kelas->jenis_pertandingan
+            'matchType' => $pertandingan->kelas->jenis_pertandingan,
+            'currentSide' => $side,
+            'currentSidePlayers' => $currentSidePlayers,
+            'opponentSide' => $opponentSide
         ]);
     }
 
@@ -219,10 +234,25 @@ class juriController extends Controller
 
         $user = \App\Models\User::find($userId);
 
+        // Get side parameter from URL (default to 1)
+        $side = request()->get('side', 1);
+
+        // Load players for this match
+        $pertandingan->load('players');
+
+        // Get players for current side
+        $currentSidePlayers = $pertandingan->players->where('side_number', $side);
+
+        // Get opponent side number
+        $opponentSide = $side == 1 ? 2 : 1;
+
         return view('seni.ganda.juri', [
             'id' => $pertandingan->id,
             'user' => $user,
-            'pertandingan' => $pertandingan
+            'pertandingan' => $pertandingan,
+            'currentSide' => $side,
+            'currentSidePlayers' => $currentSidePlayers,
+            'opponentSide' => $opponentSide
         ]);
     }
 

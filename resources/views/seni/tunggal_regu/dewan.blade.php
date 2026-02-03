@@ -11,7 +11,7 @@
 <body class="bg-gray-50 min-h-screen p-5">
 
     {{-- Data Tersembunyi untuk dikirim via API --}}
-    <input type="hidden" id="pertandingan_id" value="1">
+    <input type="hidden" id="pertandingan_id" value="{{ $id }}">
 
     <div class="max-w-6xl mx-auto bg-white shadow-lg">
         <!-- ... (Header tidak berubah) ... -->
@@ -55,7 +55,7 @@
         // Fungsi untuk mengirim event ke server
         function sendPenaltyEvent(penaltyId, value) {
             console.log(`Mengirim event: penaltyId=${penaltyId}, value=${value}`);
-            fetch('/dewan/kirim-penalti', { // Pastikan URL ini sesuai dengan route Anda
+            fetch('/dewan-seni-tunggal-regu/kirim-penalti', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -63,8 +63,8 @@
                 },
                 body: JSON.stringify({
                     pertandingan_id: pertandinganId,
-                    penalty_id: penaltyId, // ID unik penalti, e.g., 'keluar_garis'
-                    value: value // Nilai penalti, e.g., -0.50 atau 0
+                    penalty_id: penaltyId,
+                    value: value
                 })
             })
             .then(response => {
