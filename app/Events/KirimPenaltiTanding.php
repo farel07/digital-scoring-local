@@ -14,6 +14,8 @@ class KirimPenaltiTanding implements ShouldBroadcast
 
     public string $penalty_id;
     public float $value;
+    public int $point_deduction;
+    public bool $is_disqualified;
     private string $pertandingan_id;
     public string $filter;
 
@@ -23,6 +25,8 @@ class KirimPenaltiTanding implements ShouldBroadcast
         $this->value = $data['value'];
         $this->pertandingan_id = $data['pertandingan_id'];
         $this->filter = $data['filter'];
+        $this->point_deduction = $data['point_deduction'] ?? 0;
+        $this->is_disqualified = $data['is_disqualified'] ?? false;
     }
 
     public function broadcastOn(): array
@@ -32,7 +36,7 @@ class KirimPenaltiTanding implements ShouldBroadcast
             new Channel('kirim-penalti-tanding-' . $this->pertandingan_id),
         ];
     }
-    
+
     public function broadcastAs()
     {
         return 'KirimPenaltiTanding';

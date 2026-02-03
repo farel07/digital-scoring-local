@@ -339,5 +339,104 @@
     </div>
 
     @vite(['resources/js/app.js'])
+    
+    {{-- Initialize with database data --}}
+    <script>
+        // Make PERTANDINGAN_ID available globally
+        const PERTANDINGAN_ID = {{ $id }};
+        
+        // Initial data from database
+        const INITIAL_DATA = {!! json_encode([
+            'blue_score' => $tandingMatch->blue_total_score,
+            'red_score' => $tandingMatch->red_total_score,
+            'blue_disqualified' => $tandingMatch->blue_disqualified,
+            'red_disqualified' => $tandingMatch->red_disqualified,
+            'current_round' => $tandingMatch->current_round,
+            'penalties' => $penalties,
+            'scores' => $scores,
+            'techniqueStats' => $techniqueStats,
+        ]) !!};
+
+        // Initialize page with database data
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Loading initial data from database:', INITIAL_DATA);
+            
+            // Set total scores
+            const blueScoreElement = document.getElementById('total-point-blue');
+            const redScoreElement = document.getElementById('total-point-red');
+            
+            if (blueScoreElement) {
+                blueScoreElement.innerText = INITIAL_DATA.blue_disqualified ? 'DQ' : INITIAL_DATA.blue_score;
+                if (INITIAL_DATA.blue_disqualified) {
+                    blueScoreElement.style.color = "#dc3545";
+                    blueScoreElement.style.fontWeight = "900";
+                }
+            }
+            
+            if (redScoreElement) {
+                redScoreElement.innerText = INITIAL_DATA.red_disqualified ? 'DQ' : INITIAL_DATA.red_score;
+                if (INITIAL_DATA.red_disqualified) {
+                    redScoreElement.style.color = "#dc3545";
+                    redScoreElement.style.fontWeight = "900";
+                }
+            }
+
+            // Set technique stats (PUKUL/TENDANG counts)
+            if (INITIAL_DATA.techniqueStats) {
+                document.getElementById('stat-blue-pukul').innerText = INITIAL_DATA.techniqueStats.blue.pukul;
+                document.getElementById('stat-blue-tendang').innerText = INITIAL_DATA.techniqueStats.blue.tendang;
+                document.getElementById('stat-red-pukul').innerText = INITIAL_DATA.techniqueStats.red.pukul;
+                document.getElementById('stat-red-tendang').innerText = INITIAL_DATA.techniqueStats.red.tendang;
+                
+                console.log('✅ Technique stats loaded:', INITIAL_DATA.techniqueStats);
+            }
+
+            // Restore penalties
+            INITIAL_DATA.penalties.forEach(penalty => {
+                restorePenaltyUI(penalty);
+            });
+
+            // Highlight current round (if you have round indicators)
+            // highlightRound(INITIAL_DATA.current_round);
+        });
+
+        function restorePenaltyUI(penalty) {
+            // Determine the correct ID based on penalty type
+            let penaltyTypeForId = penalty.penalty_type;
+            if (penalty.penalty_type === 'bina') {
+                penaltyTypeForId = 'binaan'; // Match the ID format in blade
+            }
+            
+            // Light up penalty icon
+            const iconId = `${penalty.team}-notif-${penaltyTypeForId}-${penalty.penalty_value}`;
+            const iconElement = document.getElementById(iconId);
+            if (iconElement) {
+                iconElement.style.backgroundColor = "#ffc107";
+                iconElement.style.borderRadius = "10px";
+                iconElement.style.boxShadow = "0 0 15px #ffc107";
+                iconElement.style.padding = "5px";
+            }
+
+            // Update stats table
+            let statId;
+            if (penalty.penalty_type === 'jatuhan') {
+                statId = `stat-${penalty.team}-jatuhan`;
+            } else {
+                statId = `stat-${penalty.team}-${penalty.penalty_type}${penalty.penalty_value}`;
+            }
+            
+            const statElement = document.getElementById(statId);
+            if (statElement) {
+                // Count how many of this penalty type exist
+                const count = INITIAL_DATA.penalties.filter(p => 
+                    p.team === penalty.team && 
+                    p.penalty_type === penalty.penalty_type && 
+                    p.penalty_value === penalty.penalty_value
+                ).length;
+                statElement.innerText = count;
+            }
+        }
+    </script>
+    
     <script type="module" src='/js/listenTanding.js'></script>
 @endsection

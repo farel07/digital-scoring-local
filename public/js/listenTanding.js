@@ -1,4 +1,4 @@
-const PERTANDINGAN_ID = 2;
+// PERTANDINGAN_ID is now set globally in penilaian.blade.php from database
 
 // ========================================
 // EVENT LISTENER UNTUK PENALTI (Existing)
@@ -9,8 +9,9 @@ window.Echo.channel(`kirim-penalti-tanding-${PERTANDINGAN_ID}`).listen(
         console.log("Data Penalti Diterima:", event);
 
         // Destrukturisasi data dari event
-        // event format: { penalty_id: "bina", value: 1, filter: "blue", pertandingan_id: 2 }
-        const { penalty_id, value, filter } = event;
+        // event format: { penalty_id: "bina", value: 1, filter: "blue", point_deduction: -1, is_disqualified: false }
+        const { penalty_id, value, filter, point_deduction, is_disqualified } =
+            event;
 
         // 1. LOGIKA UNTUK MENYALAKAN GAMBAR (BINA/TEGURAN/PERINGATAN)
         // Format ID di blade: id="blue-notif-binaan-1"
@@ -65,6 +66,16 @@ window.Echo.channel(`kirim-penalti-tanding-${PERTANDINGAN_ID}`).listen(
                 statElement.style.backgroundColor = "";
                 statElement.style.color = "";
             }, 1000);
+        }
+
+        // 3. NEW: DEDUCT POINTS FROM TOTAL SCORE
+        if (point_deduction && point_deduction !== 0) {
+            updateTotalPoinPenalty(filter, point_deduction);
+        }
+
+        // 4. NEW: SHOW DISQUALIFICATION IF PERINGATAN 3
+        if (is_disqualified) {
+            showDisqualification(filter);
         }
     }
 );
@@ -184,3 +195,69 @@ function resetJuriIndicators(tim, teknik) {
         }
     }, 500); // Delay 500ms biar keliatan dulu lampunya nyala
 }
+
+// ========================================
+// NEW FUNCTIONS FOR PENALTY POINT DEDUCTION
+// ========================================
+
+// Fungsi untuk mengurangi poin saat penalty diberikan
+function updateTotalPoinPenalty(tim, pointDeduction) {
+    const totalPointId = `total-point-${tim}`;
+    const totalElement = document.getElementById(totalPointId);
+
+    if (totalElement) {
+        const currentTotal = parseInt(totalElement.innerText) || 0;
+        const newTotal = currentTotal + pointDeduction; // Can be positive (jatuhan) or negative (penalty)
+        totalElement.innerText = newTotal; // Allow negative scores
+
+        // Flash effect - green for positive points (jatuhan), red for negative (penalty)
+        totalElement.style.transition = "transform 0.3s, color 0.3s";
+        totalElement.style.transform = "scale(1.1)";
+
+        if (pointDeduction > 0) {
+            // Positive points (jatuhan) - green flash
+            totalElement.style.color = "#28a745"; // Green flash
+        } else {
+            // Negative points (penalties) - red flash
+            totalElement.style.color = "#dc3545"; // Red flash
+        }
+
+        setTimeout(() => {
+            totalElement.style.transform = "scale(1)";
+            totalElement.style.color = "";
+        }, 300);
+    }
+}
+
+// Fungsi untuk menampilkan disqualification (Peringatan 3)
+function showDisqualification(tim) {
+    const totalPointId = `total-point-${tim}`;
+    const totalElement = document.getElementById(totalPointId);
+
+    if (totalElement) {
+        // Set nilai menjadi 0 terlebih dahulu (karena -15)
+        const currentTotal = parseInt(totalElement.innerText) || 0;
+        totalElement.innerText = Math.max(0, currentTotal);
+
+        // Tunggu sebentar lalu tampilkan DQ
+        setTimeout(() => {
+            totalElement.innerText = "DQ"; // Show DQ instead of score
+            totalElement.style.color = "#dc3545";
+            totalElement.style.fontWeight = "900";
+            totalElement.style.fontSize = "clamp(80px, 18vw, 180px)"; // Slightly larger
+
+            // Add pulsing animation for emphasis
+            totalElement.style.animation = "pulse 1s ease-in-out 3";
+        }, 500);
+    }
+}
+
+// Add CSS animation for pulse effect
+const style = document.createElement("style");
+style.textContent = `
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+    }
+`;
+document.head.appendChild(style);
