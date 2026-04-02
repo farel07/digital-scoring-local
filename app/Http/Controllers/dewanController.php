@@ -2,14 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Events\KirimPenalti;
 use App\Events\KirimPenaltiTanding;
 use App\Events\ValidationRequestSent;
+use App\Models\Pertandingan;
 use App\Models\TandingMatch;
 use App\Models\TandingPenalty;
 use App\Models\User;
 use App\Models\ValidationRequest;
+use Illuminate\Http\Request;
 
 class dewanController extends Controller
 {
@@ -41,6 +42,8 @@ class dewanController extends Controller
 
     public function tanding_index($id)
     {
+        $pertandingan = Pertandingan::findOrFail($id);
+
         // Validasi: Cek apakah user punya akses ke pertandingan ini
         $user_id = auth()->user()->id;
         $user = User::find($user_id);
@@ -55,7 +58,11 @@ class dewanController extends Controller
             ], 403);
         }
 
-        return view('tanding.dewan', ['id' => $id]);
+        return view('tanding.dewan', [
+            'id' => $id,
+            'playerBlue'     => $pertandingan->players()->where('side_number', 1)->first(), // side_number 1 = Blue
+            'playerRed'      => $pertandingan->players()->where('side_number', 2)->first(), // side_number 2 = Red 
+        ]);
     }
 
     public function kirim_pelanggaran_seni_tunggal_regu(Request $request)
@@ -103,10 +110,42 @@ class dewanController extends Controller
     {
         $validatedData = $request->validate([
             'pertandingan_id' => 'required|integer',
-            'penalty_id' => 'required|',
-            'value' => 'required',
-            'filter' => 'required|string'
+            'penalty_id'      => 'required|',
+            'value'           => 'required',
+            'filter'          => 'required|string'
         ]);
+
+        // ── BATAS MAKSIMUM PER TIM ───────────────────────────────────────────
+        $limits = [
+            'bina'       => 2,
+            'teguran'    => 2,
+            'peringatan' => 3,
+        ];
+
+        $penaltyType = $validatedData['penalty_id'];
+        $team        = $validatedData['filter'];
+
+        // Cek apakah penalty ini punya batas
+        if (isset($limits[$penaltyType])) {
+            $tandingMatchCheck = TandingMatch::where('pertandingan_id', $validatedData['pertandingan_id'])->first();
+
+            if ($tandingMatchCheck) {
+                $existingCount = TandingPenalty::where('tanding_match_id', $tandingMatchCheck->id)
+                    ->where('team', $team)
+                    ->where('penalty_type', $penaltyType)
+                    ->count();
+
+                if ($existingCount >= $limits[$penaltyType]) {
+                    return response()->json([
+                        'status'    => 'limit_reached',
+                        'message'   => ucfirst($penaltyType) . ' untuk tim ' . strtoupper($team) . ' sudah mencapai batas maksimum (' . $limits[$penaltyType] . 'x).',
+                        'count'     => $existingCount,
+                        'limit'     => $limits[$penaltyType],
+                    ], 422);
+                }
+            }
+        }
+        // ─────────────────────────────────────────────────────────────────────
 
         // Calculate point deduction based on penalty type
         $pointDeduction = 0;
@@ -139,19 +178,19 @@ class dewanController extends Controller
             ['pertandingan_id' => $validatedData['pertandingan_id']],
             [
                 'current_round' => 1,
-                'match_status' => 'in_progress',
-                'started_at' => now()
+                'match_status'  => 'in_progress',
+                'started_at'    => now()
             ]
         );
 
         // Save penalty to database
         TandingPenalty::create([
-            'tanding_match_id' => $tandingMatch->id,
-            'team' => $validatedData['filter'],
-            'penalty_type' => $validatedData['penalty_id'],
-            'penalty_value' => $validatedData['value'],
-            'point_deduction' => $pointDeduction,
-            'round' => $tandingMatch->current_round,
+            'tanding_match_id'        => $tandingMatch->id,
+            'team'                    => $validatedData['filter'],
+            'penalty_type'            => $validatedData['penalty_id'],
+            'penalty_value'           => $validatedData['value'],
+            'point_deduction'         => $pointDeduction,
+            'round'                   => $tandingMatch->current_round,
             'caused_disqualification' => $isDisqualified,
         ]);
 
@@ -176,7 +215,7 @@ class dewanController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'data' => $validatedData
+            'data'   => $validatedData
         ]);
     }
 
@@ -300,4 +339,88 @@ class dewanController extends Controller
 
         return response()->json($lastValidation);
     }
+
+    /**
+     * Get current penalty counts for a match (for frontend to restore state on refresh)
+     * Returns counts per team: { blue: { bina: 1, teguran: 0, peringatan: 2 }, red: { ... } }
+     */
+    public function getPenaltyCounts($pertandinganId)
+    {
+        $tandingMatch = TandingMatch::where('pertandingan_id', $pertandinganId)->first();
+
+        $empty = ['bina' => 0, 'teguran' => 0, 'peringatan' => 0];
+
+        if (!$tandingMatch) {
+            return response()->json(['blue' => $empty, 'red' => $empty]);
+        }
+
+        $counts = ['blue' => $empty, 'red' => $empty];
+
+        foreach (['blue', 'red'] as $team) {
+            foreach (['bina', 'teguran', 'peringatan'] as $type) {
+                $counts[$team][$type] = TandingPenalty::where('tanding_match_id', $tandingMatch->id)
+                    ->where('team', $team)
+                    ->where('penalty_type', $type)
+                    ->count();
+            }
+        }
+
+        return response()->json($counts);
+    }
+
+    /**
+     * Get penalty counts per round per team for score-value boxes display.
+     * GET /dewan-tanding/penalty-counts-per-round/{id}
+     *
+     * Bina, teguran, jatuhan → per-round (reset each round)
+     * Peringatan             → cumulative (running total across rounds)
+     *
+     * Returns:
+     * {
+     *   blue: { 1: {bina:1, teguran:0, peringatan:0, jatuhan:2}, 2: {...}, 3: {...} },
+     *   red:  { ... }
+     * }
+     */
+    public function getPenaltyCountsPerRound($pertandinganId)
+    {
+        $tandingMatch = TandingMatch::where('pertandingan_id', $pertandinganId)->first();
+
+        $emptyRound   = ['bina' => 0, 'teguran' => 0, 'peringatan' => 0, 'jatuhan' => 0];
+        $emptyResult  = [
+            'blue' => ['1' => $emptyRound, '2' => $emptyRound, '3' => $emptyRound],
+            'red'  => ['1' => $emptyRound, '2' => $emptyRound, '3' => $emptyRound],
+        ];
+
+        if (!$tandingMatch) {
+            return response()->json($emptyResult);
+        }
+
+        $penalties = TandingPenalty::where('tanding_match_id', $tandingMatch->id)->get();
+
+        $result = $emptyResult;
+
+        // Types that reset per round
+        $perRoundTypes = ['bina', 'teguran', 'jatuhan'];
+
+        foreach ($penalties as $p) {
+            $team  = $p->team;
+            $type  = $p->penalty_type;
+            $round = (string)($p->round ?? 1);
+
+            if (!isset($result[$team][$round])) continue;
+
+            if (in_array($type, $perRoundTypes)) {
+                // Count only in the round it occurred
+                $result[$team][$round][$type]++;
+            } else {
+                // Peringatan: cumulative — add to current round AND all subsequent rounds
+                for ($r = (int)$round; $r <= 3; $r++) {
+                    $result[$team][(string)$r][$type]++;
+                }
+            }
+        }
+
+        return response()->json($result);
+    }
 }
+

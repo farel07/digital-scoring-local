@@ -248,10 +248,10 @@
 @php
     // Konfigurasi Kolom Skor untuk Looping
     $scoreColumns = [
-        ['label' => 'BINA', 'width' => '90px', 'col_class' => 'col-3 pe-0'],
-        ['label' => 'TEGURAN', 'width' => '98px', 'col_class' => 'col-3 ps-0 pe-0'],
-        ['label' => 'PERINGATAN', 'width' => '98px', 'col_class' => 'col-3 ps-1 p-0'],
-        ['label' => 'JATUH', 'width' => '90px', 'col_class' => 'col-3 ps-2 p-0'],
+        ['label' => 'BINA',       'key' => 'bina',       'col_class' => 'col-3 pe-0'],
+        ['label' => 'TEGURAN',    'key' => 'teguran',    'col_class' => 'col-3 ps-0 pe-0'],
+        ['label' => 'PERINGATAN', 'key' => 'peringatan', 'col_class' => 'col-3 ps-1 p-0'],
+        ['label' => 'JATUH',      'key' => 'jatuhan',    'col_class' => 'col-3 ps-2 p-0'],
     ];
 
     // Konfigurasi Tombol Aksi
@@ -264,8 +264,8 @@
         <div class="header-section">
             <div class="row align-items-center">
                 <div class="col-md-4">
-                    <p class="text-muted m-0">CONTINGENT</p>
-                    <h5 class="text-primary">ATHLETE BLUE</h5>
+                    <p class="text-muted m-0">{{ $playerBlue->player_contingent }}</p>
+                    <h5 class="text-primary">{{ $playerBlue->player_name }}</h5>
                 </div>
                 <div class="col-md-4 text-center my-3 my-md-0">
                     <div class="match-info">
@@ -274,8 +274,8 @@
                     </div>
                 </div>
                 <div class="col-md-4 text-end">
-                    <p class="text-muted m-0">CONTINGENT</p>
-                    <h5 class="text-danger">ATHLETE RED</h5>
+                    <p class="text-muted m-0">{{ $playerRed->player_contingent }}</p>
+                    <h5 class="text-danger">{{ $playerRed->player_name }}</h5>
                 </div>
             </div>
         </div>
@@ -295,11 +295,11 @@
                 </div>
 
                 {{-- Baris Nilai (Loop 3 Ronde) --}}
-                @for($i = 0; $i < 3; $i++)
+                @for($i = 1; $i <= 3; $i++)
                     <div class="d-flex gap-2 mt-2">
                         @foreach($scoreColumns as $col)
                             <div class="flex-fill">
-                                <div class="score-value">-</div>
+                                <div class="score-value" id="penalty-blue-{{ $i }}-{{ $col['key'] }}">-</div>
                             </div>
                         @endforeach
                     </div>
@@ -324,10 +324,10 @@
             {{-- ==================== CENTER (SCORE & MODAL) ==================== --}}
             <div class="col-lg-2">
                 <div class="center-panel">
-                    <div class="score-label bg-warning text-white mb-3">SCORE</div>
+                    {{-- <div class="score-label bg-warning text-white mb-3">ROUND</div> --}}
                     
                     @foreach(['I', 'II', 'III'] as $round)
-                        <div class="round-indicator mb-2">{{ $round }}</div>
+                        <div class="round-indicator mb-2 mt-4">{{ $round }}</div>
                     @endforeach
 
                     <div class="mt-4 d-grid gap-2">
@@ -360,11 +360,11 @@
                 </div>
 
                 {{-- Baris Nilai (Loop 3 Ronde) --}}
-                @for($i = 0; $i < 3; $i++)
+                @for($i = 1; $i <= 3; $i++)
                     <div class="d-flex gap-2 justify-content-end mt-2">
                         @foreach($scoreColumns as $col)
                             <div class="flex-fill">
-                                <div class="score-value">-</div>
+                                <div class="score-value" id="penalty-red-{{ $i }}-{{ $col['key'] }}">-</div>
                             </div>
                         @endforeach
                     </div>
@@ -390,44 +390,91 @@
 </div>
 
 {{-- MODAL - Request Validation --}}
-<div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+<div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title w-100 text-center" id="exampleModalLabel">REQUEST VALIDATION</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4">
-                <p class="text-center mb-4">Pilih jenis validasi dan tim:</p>
-                
-                <!-- Blue Team -->
-                <div class="mb-4">
-                    <h6 class="text-primary mb-3">Team Blue</h6>
-                    <div class="d-grid gap-2">
-                        <button class="btn btn-primary" onclick="requestValidation('jatuhan', 'blue')">
-                            🟦 Jatuhan - Blue
-                        </button>
-                        <button class="btn btn-outline-primary" onclick="requestValidation('pelanggaran', 'blue')">
-                            🟦 Pelanggaran - Blue
-                        </button>
+
+                {{-- BAGIAN 1: FORM PILIH VALIDASI --}}
+                <div id="validation-request-form">
+                    <p class="text-center mb-4">Pilih jenis validasi dan tim:</p>
+                    <div class="mb-4">
+                        <h6 class="text-primary mb-3">Team Blue</h6>
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-primary" onclick="requestValidationAndWait('jatuhan', 'blue')">🟦 Jatuhan - Blue</button>
+                            <button class="btn btn-outline-primary" onclick="requestValidationAndWait('pelanggaran', 'blue')">🟦 Pelanggaran - Blue</button>
+                        </div>
+                    </div>
+                    <div>
+                        <h6 class="text-danger mb-3">Team Red</h6>
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-danger" onclick="requestValidationAndWait('jatuhan', 'red')">🟥 Jatuhan - Red</button>
+                            <button class="btn btn-outline-danger" onclick="requestValidationAndWait('pelanggaran', 'red')">🟥 Pelanggaran - Red</button>
+                        </div>
                     </div>
                 </div>
-                
-                <!-- Red Team -->
-                <div>
-                    <h6 class="text-danger mb-3">Team Red</h6>
-                    <div class="d-grid gap-2">
-                        <button class="btn btn-danger" onclick="requestValidation('jatuhan', 'red')">
-                            🟥 Jatuhan - Red
-                        </button>
-                        <button class="btn btn-outline-danger" onclick="requestValidation('pelanggaran', 'red')">
-                            🟥 Pelanggaran - Red
-                        </button>
+
+                {{-- BAGIAN 2: LIVE VOTE PANEL (tampil setelah request) --}}
+                <div id="validation-voting-panel" style="display:none;">
+                    <div class="text-center mb-4">
+                        <span id="voting-status-badge" class="badge bg-warning fs-6 px-4 py-2">Menunggu Vote Juri...</span>
+                        <p class="text-muted mt-2 mb-0 small" id="voting-request-info"></p>
+                    </div>
+
+                    <!-- Kartu vote per juri -->
+                    <div class="row g-3 mb-4">
+                        @foreach([1,2,3] as $juri)
+                        <div class="col-4">
+                            <div class="card h-100 border-2" id="juri-vote-card-{{ $juri }}">
+                                <div class="card-header text-center fw-bold bg-light py-2">JURI {{ $juri }}</div>
+                                <div class="card-body text-center py-4" id="juri-vote-body-{{ $juri }}">
+                                    <p class="mb-0 mt-1 text-muted small">Menunggu...</p>
+                                </div>
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+
+                    <!-- Ringkasan vote -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-4 text-center">
+                            <div class="border rounded p-2" style="background:#d1e7dd;">
+                                <div class="fw-bold fs-4" style="color:#0a3622;" id="vote-count-sah">0</div>
+                                <small class="fw-semibold" style="color:#0a3622;">SAH</small>
+                            </div>
+                        </div>
+                        <div class="col-4 text-center">
+                            <div class="border rounded p-2" style="background:#f8d7da;">
+                                <div class="fw-bold fs-4" style="color:#58151c;" id="vote-count-tidak-sah">0</div>
+                                <small class="fw-semibold" style="color:#58151c;">TIDAK SAH</small>
+                            </div>
+                        </div>
+                        <div class="col-4 text-center">
+                            <div class="border rounded p-2" style="background:#e2e3e5;">
+                                <div class="fw-bold fs-4" style="color:#41464b;" id="vote-count-netral">0</div>
+                                <small class="fw-semibold" style="color:#41464b;">NETRAL</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Hasil akhir (tersembunyi sampai semua juri vote) -->
+                    <div id="final-result-box" style="display:none;">
+                        <hr>
+                        <div class="text-center py-3 rounded fs-5 fw-bold" id="final-result-display"></div>
+                    </div>
+
+                    <div class="text-center mt-3">
+                        <button class="btn btn-outline-secondary btn-sm" onclick="resetValidationModal()">← Buat Request Baru</button>
                     </div>
                 </div>
+
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="resetValidationModal()">Tutup</button>
             </div>
         </div>
     </div>

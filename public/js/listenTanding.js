@@ -77,7 +77,7 @@ window.Echo.channel(`kirim-penalti-tanding-${PERTANDINGAN_ID}`).listen(
         if (is_disqualified) {
             showDisqualification(filter);
         }
-    }
+    },
 );
 
 // ========================================
@@ -103,7 +103,7 @@ window.Echo.channel(`kirim-poin-tanding-${PERTANDINGAN_ID}`).listen(
             updateStatsTeknik(filter, teknik);
             resetJuriIndicators(filter, teknik);
         }
-    }
+    },
 );
 
 // Fungsi untuk menyalakan indikator juri (background kuning)
@@ -261,3 +261,126 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
+
+// ========================================
+// REAL-TIME TIMER SYNCHRONIZATION
+// ========================================
+
+// Global timer state
+let timerInterval = null;
+let currentTimerSeconds = 120; // Default 2 minutes
+let totalDuration = 120;
+let timerRunning = false;
+
+// Timer display element
+const timerElement = document.getElementById("timer");
+
+// Function to format seconds to MM:SS
+function formatTime(seconds) {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+}
+
+// Function to update timer display
+function updateTimerDisplay() {
+    if (timerElement) {
+        timerElement.textContent = formatTime(currentTimerSeconds);
+    }
+}
+
+// Function to start countdown
+function startCountdown() {
+    if (timerInterval) return; // Already running
+
+    timerRunning = true;
+    timerInterval = setInterval(() => {
+        if (currentTimerSeconds > 0) {
+            currentTimerSeconds--;
+            updateTimerDisplay();
+        } else {
+            // Timer reached 0
+            stopCountdown();
+        }
+    }, 1000);
+}
+
+// Function to stop countdown
+function stopCountdown() {
+    if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+    }
+    timerRunning = false;
+}
+
+// Function to reset timer
+function resetTimer(seconds) {
+    stopCountdown();
+    currentTimerSeconds = seconds;
+    totalDuration = seconds;
+    updateTimerDisplay();
+}
+
+// Listen for timer updates from timer_tanding
+window.Echo.channel(`timer-${PERTANDINGAN_ID}`).listen(
+    ".TimerUpdated",
+    (event) => {
+        console.log("Timer Update Received:", event);
+
+        const { state, current_time, total_duration, current_round } = event;
+
+        // Handle different timer states
+        if (state === "playing") {
+            // Start/resume countdown
+            currentTimerSeconds = current_time;
+            totalDuration = total_duration;
+            updateTimerDisplay();
+            startCountdown();
+            console.log("✅ Timer started/resumed");
+        } else if (state === "paused") {
+            // Pause countdown
+            currentTimerSeconds = current_time;
+            stopCountdown();
+            updateTimerDisplay();
+            console.log("⏸️ Timer paused");
+        } else if (state === "reset") {
+            // Reset to initial time
+            resetTimer(current_time);
+            console.log("🔄 Timer reset");
+        } else if (state === "round_changed") {
+            // Round changed - highlight the new round
+            if (current_round) {
+                highlightRound(current_round);
+                console.log(`🔵 Round changed to ${current_round}`);
+            }
+        }
+    },
+);
+
+// Function to highlight current round
+function highlightRound(roundNumber) {
+    // Reset all rounds to default (bg-light)
+    for (let i = 1; i <= 3; i++) {
+        const roundBox = document.getElementById(`round-box-${i}`);
+        if (roundBox) {
+            roundBox.classList.remove("bg-warning");
+            roundBox.classList.add("bg-light");
+        }
+    }
+
+    // Highlight current round (bg-warning)
+    const currentRoundBox = document.getElementById(`round-box-${roundNumber}`);
+    if (currentRoundBox) {
+        currentRoundBox.classList.remove("bg-light");
+        currentRoundBox.classList.add("bg-warning");
+
+        // Add pulse animation
+        currentRoundBox.style.animation = "pulse 0.5s ease-in-out 2";
+        setTimeout(() => {
+            currentRoundBox.style.animation = "";
+        }, 1000);
+    }
+}
+
+console.log("✅ Timer listener initialized for pertandingan:", PERTANDINGAN_ID);

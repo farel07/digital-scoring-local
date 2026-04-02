@@ -6,6 +6,7 @@ use App\Http\Controllers\juriController;
 use App\Http\Controllers\dewanOperatorController;
 use App\Http\Controllers\dewanController;
 use App\Http\Controllers\penilaianController;
+use App\Http\Controllers\timerController;
 use App\Http\Controllers\SuperadminController;
 use App\Http\Controllers\OperatorController;
 use App\Http\Controllers\AuthController;
@@ -56,14 +57,22 @@ Route::get('/operator-static/{user_id?}', [OperatorController::class, 'index'])-
 
 // route tanding
 Route::get('/dewan-tanding/{id}', [dewanController::class, 'tanding_index']);
+Route::get('/juri-tanding/score-log', [juriController::class, 'getJuriScoreLog']); // ← must be ABOVE /{id}
 Route::get('/juri-tanding/{id}', [juriController::class, 'tanding_index']);
 Route::post('/juri-tanding/kirim-poin', [juriController::class, 'kirimPoin']);
-Route::post('/dewan/kirim-penalti-tanding', [DewanController::class, 'kirim_penalti_tanding']);
+Route::post('/dewan/kirim-penalti-tanding', [dewanController::class, 'kirim_penalti_tanding']);
 
 // Validation request routes
 Route::post('/dewan-tanding/request-validation', [dewanController::class, 'requestValidation']);
 Route::get('/dewan-tanding/last-validation/{id}', [dewanController::class, 'getLastValidation']);
+Route::get('/dewan-tanding/penalty-counts/{id}', [dewanController::class, 'getPenaltyCounts']);
+Route::get('/dewan-tanding/penalty-counts-per-round/{id}', [dewanController::class, 'getPenaltyCountsPerRound']);
 Route::post('/juri-tanding/submit-validation-vote', [juriController::class, 'submitValidationVote']);
+
+// Timer Tanding Routes
+Route::get('/timer-tanding/{userId}', [timerController::class, 'index'])->name('timer.index');
+Route::post('/timer-tanding/broadcast', [timerController::class, 'broadcastTimer'])->name('timer.broadcast');
+Route::post('/timer-tanding/update-round', [timerController::class, 'updateRound'])->name('timer.updateRound');
 
 
 // route seni ganda 

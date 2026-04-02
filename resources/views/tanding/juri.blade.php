@@ -5,6 +5,30 @@
     <meta name="pertandingan-id" content="{{ $id }}">
     {{-- Meta tag untuk user ID agar JavaScript tahu juri mana yang sedang login --}}
     <meta name="user-id" content="{{ auth()->user()->id }}">
+    <style>
+        /* Score log box */
+        .score-log-box {
+            display: flex;
+            align-items: center;
+            overflow: hidden;          /* Clips digits — box NEVER grows */
+            white-space: nowrap;
+            height: 56px;
+            border-radius: 10px;
+            border: 2px solid #ced4da;
+            background: #fff;
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: 3px;
+            padding: 0 10px;
+            font-family: monospace;
+        }
+        /* Blue: digits slide left, newest on right */
+        .score-log-box.blue-log  { direction: rtl; color: #0d6efd; }
+        .score-log-box.blue-log span { direction: ltr; }
+        /* Red: same idea */
+        .score-log-box.red-log   { direction: rtl; color: #dc3545; }
+        .score-log-box.red-log span { direction: ltr; }
+    </style>
 @endsection
 
 @section('content')
@@ -13,16 +37,16 @@
             {{-- title --}}
             <div class="d-flex justify-content-between">
                 <div class="m-2">
-                    <p class="text-start m-0">CONTINGENT</p>
-                    <h5 class="text-primary">ATHLETE</h5>
+                    <p class="text-start m-0">{{ $playerBlue->player_contingent }}</p>
+                    <h5 class="text-primary">{{ $playerBlue->player_name }}</h5>
                 </div>
                 <div class="m-2">
                     <p class="m-0 fw-bold">PARTAI 2</p>
                     <p class="m-0 fw-bold">ARENA 1</p>
                 </div>
                 <div class="mt-2 me-2">
-                    <p class="text-end m-0">CONTINGENT</p>
-                    <h5 class="text-end text-danger">ATHLETE</h5>
+                    <p class="text-end m-0">{{ $playerRed->player_contingent }}</p>
+                    <h5 class="text-end text-danger">{{ $playerRed->player_name }}</h5>
                 </div>
             </div>
             {{-- end title --}}
@@ -34,9 +58,17 @@
                 <div class="col-4">
                     <div class="p-3 border bg-primary text-light text-center" style="border-radius: 10px">TEAM BLUE
                     </div>
-                    <div class="p-3 mt-3 border bg-light text-center" style="border-radius: 10px">-</div>
-                    <div class="p-3 mt-3 border bg-light text-center" style="border-radius: 10px">-</div>
-                    <div class="p-3 mt-3 border bg-light text-center" style="border-radius: 10px">-</div>
+
+                    {{-- Score log boxes: 1 per round --}}
+                    @foreach([1,2,3] as $r)
+                    <div class="d-flex align-items-center gap-2 mt-2">
+                        {{-- <small class="text-muted fw-bold" style="min-width:20px">R{{ $r }}</small> --}}
+                        <div class="score-log-box blue-log flex-grow-1" id="score-log-blue-{{ $r }}">
+                            <span id="score-log-blue-inner-{{ $r }}"></span>
+                        </div>
+                    </div>
+                    @endforeach
+
                     <div class="row justify-content-between">
                         <div class="col-6 mb-3">
                             <button class="mt-3 btn btn-primary w-100" type="button" onclick="sendPoin('PUKUL', 'blue')"
@@ -45,9 +77,10 @@
 
                         </div>
                         <div class="col-6">
-                            <button class="mt-3 btn w-100 text-light" type="button"
-                                style="border-radius: 10px; height: 100px; background-color:rgb(190, 0, 0)">HAPUS POINT
-                                TERBARU</button>
+                            <button class="mt-3 btn btn-secondary w-100 text-light" type="button"
+                                style="border-radius: 10px; height: 100px" onclick="hapusTerakhir('blue')">
+                                HAPUS TERBARU
+                            </button>
                         </div>
                         <div class="d-grid gap-2 col-6 me-auto mt-3">
                             <button class="btn btn-primary" type="button" style="border-radius: 10px; height: 100px" onclick="sendPoin('TENDANG', 'blue')"><img
@@ -71,15 +104,23 @@
                 {{-- team red --}}
                 <div class="col-4">
                     <div class="p-3 border bg-danger text-light text-center" style="border-radius: 10px">TEAM RED</div>
-                    <div class="p-3 mt-3 border bg-light text-center" style="border-radius: 10px">-</div>
-                    <div class="p-3 mt-3 border bg-light text-center" style="border-radius: 10px">-</div>
-                    <div class="p-3 mt-3 border bg-light text-center" style="border-radius: 10px">-</div>
+
+                    {{-- Score log boxes: 1 per round --}}
+                    @foreach([1,2,3] as $r)
+                    <div class="d-flex align-items-center gap-2 mt-2">
+                        {{-- <small class="text-muted fw-bold" style="min-width:20px">R{{ $r }}</small> --}}
+                        <div class="score-log-box red-log flex-grow-1" id="score-log-red-{{ $r }}">
+                            <span id="score-log-red-inner-{{ $r }}"></span>
+                        </div>
+                    </div>
+                    @endforeach
+
                     <div class="row justify-content-between">
                         <div class="col-6">
-                            <button class="mt-3 btn btn-primary w-100" type="button"
-                                style="border-radius: 10px; background-color:rgb(190, 0, 0); height: 100px">HAPUS POINT
-                                TERBARU</button>
-
+                            <button class="mt-3 btn btn-secondary w-100"
+                                style="border-radius: 10px; height: 100px" onclick="hapusTerakhir('red')">
+                                HAPUS TERBARU
+                            </button>
                         </div>
                         <div class="col-6">
                             <button class="mt-3 btn btn-danger w-100" type="button"
