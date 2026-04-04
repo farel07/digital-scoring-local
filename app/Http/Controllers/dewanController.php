@@ -16,7 +16,8 @@ class dewanController extends Controller
     //
     public function index($id)
     {
-        return view('seni.tunggal_regu.dewan', ['id' => $id]);
+        $penaltyRules = \App\Models\PenaltyRule::where('category', 'tunggal_regu')->get();
+        return view('seni.tunggal_regu.dewan', ['id' => $id, 'penaltyRules' => $penaltyRules]);
     }
 
     public function index_tunggal_regu($userId)
@@ -31,11 +32,13 @@ class dewanController extends Controller
         }
 
         $user = \App\Models\User::find($userId);
+        $penaltyRules = \App\Models\PenaltyRule::where('category', 'tunggal_regu')->get();
 
         return view('seni.tunggal_regu.dewan', [
             'id' => $pertandingan->id,
             'user' => $user,
-            'pertandingan' => $pertandingan
+            'pertandingan' => $pertandingan,
+            'penaltyRules' => $penaltyRules
         ]);
     }
 
@@ -64,15 +67,20 @@ class dewanController extends Controller
             'pertandingan_id' => 'required|integer',
             'penalty_id' => 'required|string',
             'value' => 'required|numeric',
+            'side' => 'nullable|in:1,2'
         ]);
+
+        $side = $validatedData['side'] ?? '1';
+        $validatedData['side'] = $side;
 
         // Persist penalty to database
         if ($validatedData['value'] == 0) {
             // Clear penalty (set status to 'cleared' or delete)
-            // Find the most recent active penalty with this type
+            // Find the most recent active penalty with this type and side
             $penalty = \App\Models\Penalty::where('pertandingan_id', $validatedData['pertandingan_id'])
                 ->where('type', $validatedData['penalty_id'])
                 ->where('status', 'active')
+                ->where('side', $side)
                 ->orderBy('created_at', 'desc')
                 ->first();
 
@@ -81,7 +89,6 @@ class dewanController extends Controller
             }
         } else {
             // Add penalty - create new entry with unique ID
-            // Append timestamp to penalty_id for uniqueness
             $uniquePenaltyId = $validatedData['penalty_id'] . '_' . time() . '_' . rand(1000, 9999);
 
             \App\Models\Penalty::create([
@@ -90,6 +97,7 @@ class dewanController extends Controller
                 'type' => $validatedData['penalty_id'], // Original type for grouping
                 'value' => $validatedData['value'],
                 'status' => 'active',
+                'side' => $side,
             ]);
         }
 
@@ -207,7 +215,8 @@ class dewanController extends Controller
             'penalty_id' => 'required|string',
             'type' => 'required|string',
             'value' => 'required|numeric',
-            'action' => 'required|string|in:add,clear'
+            'action' => 'required|string|in:add,clear',
+            'side' => 'nullable|in:1,2'
         ]);
 
         try {
@@ -218,7 +227,8 @@ class dewanController extends Controller
                     $validatedData['pertandingan_id'],
                     $validatedData['penalty_id'],
                     $validatedData['type'],
-                    $validatedData['value']
+                    $validatedData['value'],
+                    $validatedData['side'] ?? '1'
                 );
             } else {
                 $realtimeService->clearPenalty(

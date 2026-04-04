@@ -17,15 +17,17 @@ class RealtimeService
      * @param int $pertandinganId
      * @param int $userId
      * @param array $scores ['teknik', 'kekuatan', 'penampilan']
+     * @param string $side
      * @return JudgeScore
      */
-    public function addJudgeScore($pertandinganId, $userId, array $scores)
+    public function addJudgeScore($pertandinganId, $userId, array $scores, $side = '1')
     {
         // Use updateOrCreate to handle duplicate submissions
         $judgeScore = JudgeScore::updateOrCreate(
             [
                 'pertandingan_id' => $pertandinganId,
                 'user_id' => $userId,
+                'side' => $side, // Add side to unique constraint
             ],
             [
                 'teknik' => $scores['teknik'] ?? 0,
@@ -51,9 +53,10 @@ class RealtimeService
      * @param string $penaltyId
      * @param string $type
      * @param float $value
+     * @param string $side
      * @return Penalty
      */
-    public function addPenalty($pertandinganId, $penaltyId, $type, $value)
+    public function addPenalty($pertandinganId, $penaltyId, $type, $value, $side = '1')
     {
         // Check if penalty already exists
         $penalty = Penalty::where('penalty_id', $penaltyId)->first();
@@ -68,6 +71,7 @@ class RealtimeService
                 'penalty_id' => $penaltyId,
                 'type' => $type,
                 'value' => $value,
+                'side' => $side,
                 'status' => 'active',
             ]);
         }
@@ -127,9 +131,12 @@ class RealtimeService
         // Format judges data
         $judges = [];
         foreach ($pertandingan->judgeScores as $judgeScore) {
-            $judges[$judgeScore->user_id] = [
+            // Use composite key to allow multiple records per user (one per side)
+            $key = $judgeScore->user_id . '_' . ($judgeScore->side ?? '1');
+            $judges[$key] = [
                 'judge_id' => $judgeScore->user_id,
                 'judge_name' => $judgeScore->user->name ?? "Juri {$judgeScore->user_id}",
+                'side' => $judgeScore->side ?? '1',
                 'scores' => [
                     'teknik' => (float) $judgeScore->teknik,
                     'kekuatan' => (float) $judgeScore->kekuatan,
@@ -146,12 +153,13 @@ class RealtimeService
                 'penalty_id' => $penalty->penalty_id,
                 'type' => $penalty->type,
                 'value' => (float) $penalty->value,
+                'side' => $penalty->side ?? '1',
                 'timestamp' => $penalty->created_at->toIso8601String(),
                 'status' => $penalty->status,
             ];
         })->toArray();
 
-        // Calculate total active penalties
+        // Calculate total active penalties (Overall - might need to be per side in frontend)
         $totalPenalties = $this->getTotalPenalties($pertandinganId);
 
         // Get last update time

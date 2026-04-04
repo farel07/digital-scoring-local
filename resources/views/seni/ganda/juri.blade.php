@@ -113,9 +113,9 @@
     <script>
         // Score tracking
         let scores = {
-            teknik: 0,
-            kekuatan: 0,
-            penampilan: 0
+            teknik: {{ $existingScore->teknik ?? 0 }},
+            kekuatan: {{ $existingScore->kekuatan ?? 0 }},
+            penampilan: {{ $existingScore->penampilan ?? 0 }}
         };
 
         // Get parameters from URL
@@ -192,13 +192,16 @@
                 pertandingan_id: parseInt(matchId),
                 teknik: scores.teknik,
                 kekuatan: scores.kekuatan,
-                penampilan: scores.penampilan
+                penampilan: scores.penampilan,
+                side: '{{ $currentSide }}' // Pass current side
             };
 
             // Show loading
             const submitBtn = event.target;
             submitBtn.disabled = true;
             submitBtn.textContent = 'Mengirim...';
+
+            console.log('Sending data:', data); // Debug logging
 
             fetch('/juri-seni-ganda/kirim-poin', {
                 method: 'POST',
@@ -242,6 +245,23 @@
             console.log('Match ID:', matchId);
             console.log('Arena:', '{{ $pertandingan->arena->arena_name ?? "Unknown" }}');
             console.log('Pertandingan:', '{{ $pertandingan->kelas->nama_kelas ?? "Unknown" }}');
+            
+            // Pre-select values if exist
+            if (scores.teknik > 0) {
+                const btn = Array.from(document.querySelectorAll('#teknik-buttons button'))
+                    .find(b => parseFloat(b.textContent) === parseFloat(scores.teknik));
+                if(btn) selectScore('teknik', scores.teknik, btn, 'teknik-buttons');
+            }
+            if (scores.kekuatan > 0) {
+                const btn = Array.from(document.querySelectorAll('#kekuatan-buttons button'))
+                    .find(b => parseFloat(b.textContent) === parseFloat(scores.kekuatan));
+                if(btn) selectScore('kekuatan', scores.kekuatan, btn, 'kekuatan-buttons');
+            }
+            if (scores.penampilan > 0) {
+                const btn = Array.from(document.querySelectorAll('#penampilan-buttons button'))
+                    .find(b => parseFloat(b.textContent) === parseFloat(scores.penampilan));
+                if(btn) selectScore('penampilan', scores.penampilan, btn, 'penampilan-buttons');
+            }
             console.log('=====================================');
         });
     </script>

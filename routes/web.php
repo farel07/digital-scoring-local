@@ -76,15 +76,7 @@ Route::post('/dewan-seni-ganda/kirim-penalti', [dewanController::class, 'kirim_p
 Route::get('/dewan-operator-seni-ganda/{id}', [dewanOperatorController::class, 'index_ganda']);
 
 // Route for spectators/viewers (penonton) - same pattern as dewanOperator
-Route::get('/penonton-seni-ganda/{id}', function ($id) {
-    // Get jumlah juri from query parameter (default 4)
-    $jumlahJuri = request()->query('jumlah', 4);
-
-    return view('seni.ganda.penonton', [
-        'id' => $id,
-        'jumlahJuri' => $jumlahJuri
-    ]);
-});
+Route::get('/penonton-seni-ganda/{id}', [dewanOperatorController::class, 'index_ganda_penonton']);
 
 // API route for getting events (realtime simulation)
 Route::get('/api/seni/ganda/events/{matchId}', [App\Http\Controllers\SeniGandaApiController::class, 'getEvents']);
@@ -103,16 +95,8 @@ Route::get('/api/seni/tunggal-regu/events/{matchId}', [App\Http\Controllers\Tung
 // Operator view for tunggal/regu
 Route::get('/dewan-operator-seni-tunggal-regu/{id}', [dewanOperatorController::class, 'index_tunggal_regu']);
 
-// Route for spectators/viewers (penonton) tunggal-regu
-Route::get('/penonton-seni-tunggal-regu/{id}', function ($id) {
-    // Get jumlah juri from query parameter (default 4)
-    $jumlahJuri = request()->query('jumlah', 4);
-
-    return view('seni.tunggal_regu.penonton', [
-        'id' => $id,
-        'jumlahJuri' => $jumlahJuri
-    ]);
-});
+// Route for spectators/viewers (penonton) tunggal-regu - same pattern as dewan operator
+Route::get('/penonton-seni-tunggal-regu/{id}', [dewanOperatorController::class, 'index_tunggal_regu_penonton']);
 
 // Penalty submission for tunggal/regu
 Route::post('/dewan-seni-tunggal-regu/kirim-penalti', [dewanController::class, 'kirim_pelanggaran_seni_tunggal_regu']);

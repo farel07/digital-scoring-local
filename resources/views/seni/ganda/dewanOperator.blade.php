@@ -32,6 +32,24 @@
                 </span>
                 <span class="text-base text-gray-500 ml-2">Last update: <span id="lastUpdate">-</span></span>
             </p>
+            
+            <!-- Side Monitor Toggle -->
+            <div class="flex justify-center mt-4 gap-4">
+                <button id="btnMonitorSide1" onclick="switchMonitoringSide('1')" 
+                    class="px-5 py-2 rounded-lg font-bold text-white transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 bg-blue-600 border-2 border-blue-700 text-sm">
+                    Monitor: Sudut Biru
+                </button>
+                <button id="btnMonitorSide2" onclick="switchMonitoringSide('2')" 
+                    class="px-5 py-2 rounded-lg font-bold text-gray-600 bg-gray-200 border-2 border-gray-300 transition-all duration-200 hover:bg-gray-300 text-sm">
+                    Monitor: Sudut Merah
+                </button>
+            </div>
+            <div class="text-center mt-2">
+                <span id="monitoringSideIndicator" class="px-3 py-1 rounded-md bg-blue-100 text-blue-800 font-semibold text-xs transition-colors">
+                    Monitor: Sudut Biru
+                </span>
+            </div>
+            </p>
         </div>
 
         <!-- Judge Panel Table -->
@@ -123,10 +141,41 @@
         let lastEventData = null;
         let previousJudgeData = {};
         let previousPenalties = [];
+        
+        // Side monitoring state
+        let monitoringSide = '1'; // Default: Sudut Biru
+        let pendingHighlightJudgeId = null; // Track judge to highlight
 
         // Get match_id from passed parameter
         function getMatchId() {
             return MATCH_ID;
+        }
+
+        // Switch Monitoring Side
+        function switchMonitoringSide(side) {
+            monitoringSide = side;
+            
+            const btnSide1 = document.getElementById('btnMonitorSide1');
+            const btnSide2 = document.getElementById('btnMonitorSide2');
+            const indicator = document.getElementById('monitoringSideIndicator');
+            
+            if (side === '1') {
+                btnSide1.className = 'px-5 py-2 rounded-lg font-bold text-white transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 bg-blue-600 border-2 border-blue-700 text-sm';
+                btnSide2.className = 'px-5 py-2 rounded-lg font-bold text-gray-600 bg-gray-200 border-2 border-gray-300 transition-all duration-200 hover:bg-gray-300 text-sm';
+                indicator.className = 'px-3 py-1 rounded-md bg-blue-100 text-blue-800 font-semibold text-xs';
+                indicator.textContent = 'Monitor: Sudut Biru';
+                indicator.className = 'px-3 py-1 rounded-md bg-blue-100 text-blue-800 font-semibold text-xs transition-colors';
+            } else {
+                btnSide1.className = 'px-5 py-2 rounded-lg font-bold text-gray-600 bg-gray-200 border-2 border-gray-300 transition-all duration-200 hover:bg-gray-300 text-sm';
+                btnSide2.className = 'px-5 py-2 rounded-lg font-bold text-white transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 bg-red-600 border-2 border-red-700 text-sm';
+                indicator.className = 'px-3 py-1 rounded-md bg-red-100 text-red-800 font-semibold text-xs transition-colors';
+                indicator.textContent = 'Monitor: Sudut Merah';
+            }
+
+            // Re-render with new side
+            if (lastEventData) {
+                renderDashboard(lastEventData);
+            }
         }
 
         // Initialize default judges (empty data)
@@ -233,29 +282,38 @@
         }
 
         // Render the entire dashboard
+        // Render dashboard with side filtering
         function renderDashboard(data) {
+            lastEventData = data; // Store for switching context
+            
             const judges = data.judges || {};
             const penalties = data.penalties || [];
             
             // Merge server data with default judges
             const defaultJudges = initializeDefaultJudges();
+            
+            // Filter judges by monitoringSide
             const judgeArray = defaultJudges.map(defaultJudge => {
-                return judges[defaultJudge.judge_id] || defaultJudge;
+                const key = `${defaultJudge.judge_id}_${monitoringSide}`;
+                return judges[key] || defaultJudge;
             });
 
             // Update header info
             document.getElementById('lastUpdate').textContent = data.last_update ? new Date(data.last_update).toLocaleTimeString('id-ID') : '-';
 
-            // Render penalties
-            renderPenalties(penalties, data.total_penalties);
+            // Calculate side-specific total penalties
+            const activePenalties = penalties.filter(p => p.status === 'active' && (p.side == monitoringSide || !p.side));
+            const sideTotalPenalties = activePenalties.reduce((sum, p) => sum + parseFloat(p.value), 0);
 
-            // Always render table with fixed number of judges
+            // Render Penalty Table (Specific to side)
+            renderPenalties(penalties, sideTotalPenalties);
+            
+            // Render Main Table
             renderTable(judgeArray);
 
-            // Always calculate statistics with ALL judges (including default 9.10)
-            // This ensures judges who haven't submitted are counted as 9.10
+            // Calculate & Render Statistics
             renderSortedScores(judgeArray);
-            calculateStatistics(judgeArray, data.total_penalties || 0);
+            calculateStatistics(judgeArray, sideTotalPenalties);
         }
 
         // Render penalties section as table
@@ -274,8 +332,9 @@
             ];
 
             // Count penalties by type
+            // Count penalties by type
             const penaltyCounts = {};
-            const activePenalties = penalties.filter(p => p.status === 'active');
+            const activePenalties = penalties.filter(p => p.status === 'active' && (p.side == monitoringSide || !p.side));
             
             activePenalties.forEach(penalty => {
                 if (!penaltyCounts[penalty.type]) {
@@ -344,7 +403,9 @@
             // Generate header
             let headerHTML = '<tr class="bg-gray-100"><th class="px-6 py-3 border-2 border-gray-300 text-3xl font-bold text-gray-800">Judge</th>';
             judgeArray.forEach((judge, idx) => {
-                headerHTML += `<th class="px-4 py-3 border-2 border-gray-300 text-3xl font-bold text-gray-800" data-judge-id="${judge.judge_id}">${idx + 1}</th>`;
+                const isHighlight = judge.judge_id == pendingHighlightJudgeId;
+                const bgClass = isHighlight ? 'bg-yellow-300' : '';
+                headerHTML += `<th class="px-4 py-3 border-2 border-gray-300 text-3xl font-bold text-gray-800 ${bgClass}" data-judge-id="${judge.judge_id}">${idx + 1}</th>`;
             });
             headerHTML += '</tr>';
             tableHeader.innerHTML = headerHTML;
@@ -365,7 +426,10 @@
                 judgeArray.forEach(judge => {
                     const score = judge.scores[category.key] || 0;
                     const hasData = judge.last_update !== null;
-                    const bgClass = hasData ? 'bg-white' : 'bg-gray-100';
+                    let bgClass = hasData ? 'bg-white' : 'bg-gray-100';
+                    if (judge.judge_id == pendingHighlightJudgeId) {
+                        bgClass = 'bg-yellow-300 font-bold';
+                    }
                     bodyHTML += `<td class="px-4 py-3 border-2 border-gray-300 text-3xl font-medium ${bgClass}" data-judge-id="${judge.judge_id}">${score.toFixed(2)}</td>`;
                 });
                 bodyHTML += '</tr>';
@@ -375,7 +439,10 @@
             bodyHTML += '<tr class="bg-blue-100"><td class="px-6 py-4 border-2 border-gray-300 font-bold text-2xl text-blue-800">Total Score</td>';
             judgeArray.forEach(judge => {
                 const hasData = judge.last_update !== null;
-                const bgClass = hasData ? 'bg-blue-50' : 'bg-gray-100';
+                let bgClass = hasData ? 'bg-blue-50' : 'bg-gray-100';
+                if (judge.judge_id == pendingHighlightJudgeId) {
+                    bgClass = 'bg-yellow-400 font-bold';
+                }
                 bodyHTML += `<td class="px-4 py-4 border-2 border-gray-300 font-mono text-4xl font-bold ${bgClass} text-blue-700" data-judge-id="${judge.judge_id}">${judge.total.toFixed(2)}</td>`;
             });
             bodyHTML += '</tr>';
@@ -454,6 +521,16 @@
                 window.Echo.channel(`pertandingan.${matchId}`)
                     .listen('.judge.score.updated', (e) => {
                         console.log('Judge score updated:', e);
+                        
+                        // Set highlight if side matches
+                        if (e.judgeScore && e.judgeScore.user_id && e.judgeScore.side == monitoringSide) {
+                             pendingHighlightJudgeId = e.judgeScore.user_id;
+                             setTimeout(() => {
+                                 pendingHighlightJudgeId = null;
+                                 if (lastEventData) renderDashboard(lastEventData);
+                             }, 2000);
+                        }
+
                         // Re-fetch all data to update display
                         fetchEvents();
                     })

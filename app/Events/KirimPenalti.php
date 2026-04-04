@@ -14,12 +14,14 @@ class KirimPenalti implements ShouldBroadcast
 
     public string $penalty_id;
     public float $value;
+    public string $side;
     private int $pertandingan_id;
 
     public function __construct(array $data)
     {
         $this->penalty_id = $data['penalty_id'];
         $this->value = $data['value'];
+        $this->side = $data['side'] ?? '1';
         $this->pertandingan_id = $data['pertandingan_id'];
     }
 

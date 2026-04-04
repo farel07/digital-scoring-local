@@ -17,13 +17,14 @@ class TunggalReguService
      * @param int $jurusNumber
      * @return TunggalReguScore
      */
-    public function addMoveError($pertandinganId, $userId, $jurusNumber)
+    public function addMoveError($pertandinganId, $userId, $jurusNumber, $side = '1')
     {
         // Get or create score record
         $score = TunggalReguScore::firstOrCreate(
             [
                 'pertandingan_id' => $pertandinganId,
                 'user_id' => $userId,
+                'side' => $side, // Add side to unique constraint
             ],
             [
                 'errors_per_jurus' => [], // Let Laravel handle JSON casting
@@ -76,13 +77,14 @@ class TunggalReguService
      * @param int $maxJurus
      * @return TunggalReguScore
      */
-    public function setCategoryScore($pertandinganId, $userId, $score, $maxJurus)
+    public function setCategoryScore($pertandinganId, $userId, $score, $maxJurus, $side = '1')
     {
         // Get or create score record
         $scoreRecord = TunggalReguScore::firstOrCreate(
             [
                 'pertandingan_id' => $pertandinganId,
                 'user_id' => $userId,
+                'side' => $side, // Add side to unique constraint
             ],
             [
                 'errors_per_jurus' => [], // Let Laravel handle JSON casting
@@ -133,9 +135,12 @@ class TunggalReguService
         // Format judges data
         $judges = [];
         foreach ($pertandingan->tunggalReguScores as $score) {
-            $judges[$score->user_id] = [
+            // Use composite key to allow multiple records per user (one per side)
+            $key = $score->user_id . '_' . ($score->side ?? '1');
+            $judges[$key] = [
                 'judge_id' => $score->user_id,
                 'judge_name' => $score->user->name ?? "Juri {$score->user_id}",
+                'side' => $score->side ?? '1', // Include side information
                 'correctness_score' => (float) $score->correctness_score,
                 'category_score' => (float) $score->category_score,
                 'total_score' => (float) $score->total_score,
@@ -151,6 +156,7 @@ class TunggalReguService
                 'penalty_id' => $penalty->penalty_id,
                 'type' => $penalty->type,
                 'value' => (float) $penalty->value,
+                'side' => $penalty->side ?? '1', // Include side information
                 'status' => $penalty->status,
                 'timestamp' => $penalty->created_at->toIso8601String(),
             ];

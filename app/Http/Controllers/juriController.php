@@ -73,7 +73,8 @@ class juriController extends Controller
         $validated = $request->validate([
             'pertandingan_id' => 'required|integer|exists:pertandingan,id',
             'user_id' => 'required|integer|exists:users,id',
-            'jurus_number' => 'required|integer|min:1'
+            'jurus_number' => 'required|integer|min:1',
+            'side' => 'nullable|in:1,2'
         ]);
 
         // Validate user has access to this match
@@ -88,7 +89,8 @@ class juriController extends Controller
         $score = $service->addMoveError(
             $validated['pertandingan_id'],
             $validated['user_id'],
-            $validated['jurus_number']
+            $validated['jurus_number'],
+            $validated['side'] ?? '1'
         );
 
         return response()->json([
@@ -108,7 +110,8 @@ class juriController extends Controller
             'pertandingan_id' => 'required|integer|exists:pertandingan,id',
             'user_id' => 'required|integer|exists:users,id',
             'score' => 'required|numeric|min:0.01|max:0.10',
-            'current_jurus' => 'required|integer'
+            'current_jurus' => 'required|integer',
+            'side' => 'nullable|in:1,2'
         ]);
 
         // Validate user has access
@@ -135,7 +138,8 @@ class juriController extends Controller
             $validated['pertandingan_id'],
             $validated['user_id'],
             $validated['score'],
-            $maxJurus
+            $maxJurus,
+            $validated['side'] ?? '1'
         );
 
         return response()->json([
@@ -326,13 +330,20 @@ class juriController extends Controller
         // Get opponent side number
         $opponentSide = $side == 1 ? 2 : 1;
 
+        // Fetch existing score for this user, match, and side
+        $existingScore = \App\Models\JudgeScore::where('pertandingan_id', $pertandingan->id)
+            ->where('user_id', $user->id)
+            ->where('side', $side)
+            ->first();
+
         return view('seni.ganda.juri', [
             'id' => $pertandingan->id,
             'user' => $user,
             'pertandingan' => $pertandingan,
             'currentSide' => $side,
             'currentSidePlayers' => $currentSidePlayers,
-            'opponentSide' => $opponentSide
+            'opponentSide' => $opponentSide,
+            'existingScore' => $existingScore // Pass existing score
         ]);
     }
 
@@ -344,6 +355,7 @@ class juriController extends Controller
             'teknik' => 'required|numeric|min:0|max:0.30',
             'kekuatan' => 'required|numeric|min:0|max:0.30',
             'penampilan' => 'required|numeric|min:0|max:0.30',
+            'side' => 'nullable|in:1,2'
         ]);
 
         try {
@@ -362,10 +374,18 @@ class juriController extends Controller
             ];
 
             $realtimeService = new \App\Services\RealtimeService();
+            \Illuminate\Support\Facades\Log::info('Ganda Juri Submission:', [
+                'user_id' => $validatedData['user_id'],
+                'side_received' => $validatedData['side'] ?? 'null',
+                'side_final' => $validatedData['side'] ?? '1',
+                'scores' => $scores
+            ]);
+
             $judgeScore = $realtimeService->addJudgeScore(
                 $validatedData['pertandingan_id'],
                 $validatedData['user_id'],
-                $scores
+                $scores,
+                $validatedData['side'] ?? '1'
             );
 
             return response()->json([

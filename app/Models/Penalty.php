@@ -27,6 +27,7 @@ class Penalty extends Model
         'type',
         'value',
         'status',
+        'side',
     ];
 
     /**

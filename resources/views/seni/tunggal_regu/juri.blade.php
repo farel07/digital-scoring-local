@@ -202,6 +202,14 @@
             return Object.values(moveErrors).reduce((sum, errors) => sum + errors, 0);
         }
 
+        // Get side parameter from URL
+        function getUrlParameter(name) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(name) || '1'; // Default to side 1
+        }
+
+        const currentSide = getUrlParameter('side');
+
 
 
         // Update displays
@@ -227,7 +235,8 @@
                 body: JSON.stringify({
                     pertandingan_id: PERTANDINGAN_ID,
                     user_id: USER_ID,
-                    jurus_number: jurusNumber
+                    jurus_number: jurusNumber,
+                    side: currentSide  // Include side parameter
                 })
             })
             .then(response => response.json())
@@ -253,7 +262,8 @@
                     pertandingan_id: PERTANDINGAN_ID,
                     user_id: USER_ID,
                     score: score,
-                    current_jurus: currentMove
+                    current_jurus: currentMove,
+                    side: currentSide  // Include side parameter
                 })
             })
             .then(response => response.json())

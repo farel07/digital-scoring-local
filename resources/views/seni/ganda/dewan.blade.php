@@ -22,6 +22,16 @@
             </div>
         </div>
 
+        <!-- Side Toggle -->
+        <div class="flex justify-center my-4 space-x-4">
+            <button onclick="switchSide('1')" id="btnSide1" class="px-6 py-3 rounded-lg font-bold text-white bg-blue-600 shadow-md transform scale-105 ring-4 ring-blue-300 transition-all">
+                SUDUT BIRU
+            </button>
+            <button onclick="switchSide('2')" id="btnSide2" class="px-6 py-3 rounded-lg font-bold text-gray-500 bg-gray-200 hover:bg-gray-300 transition-all">
+                SUDUT MERAH
+            </button>
+        </div>
+
         <!-- Tabel Penalti -->
         <div class="p-6">
             <div class="border border-gray-300 rounded-md shadow-sm overflow-hidden">
@@ -112,39 +122,63 @@
             </div>
         </div>
 
-        <!-- Active Penalties List (Server Sync) -->
-        <div class="w-full max-w-7xl mx-auto px-6 pb-6">
-            <div class="bg-white rounded-lg shadow-md p-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-2xl font-bold text-gray-800">Riwayat Penalti Aktif</h2>
-                    <span class="text-lg font-semibold text-red-600">Total Server: <span id="activePenaltiesTotal">0.00</span></span>
-                </div>
-                <div id="activePenaltiesList" class="space-y-3 max-h-60 overflow-y-auto">
-                    <div class="text-center text-gray-500 py-8" id="noPenaltiesMsg">
-                        Belum ada penalti aktif
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 
     <script>
-        // Struktur data baru: Menggunakan Array 'stack' untuk menampung ID penalti
-        // value selalu -0.50 per kejadian
-        let categories = [
-            { type: 'WAKTU', value: -0.50, stack: [] },
-            { type: 'KELUAR_GARIS', value: -0.50, stack: [] },
-            { type: 'SENJATA_JATUH', value: -0.50, stack: [] },
-            { type: 'SENJATA_TIDAK_JATUH', value: -0.50, stack: [] },
-            { type: 'TIDAK_ADA_SALAM_SUARA', value: -0.50, stack: [] }, // Index 4
-            { type: 'BAJU_SENJATA_PATAH', value: -0.50, stack: [] }    // Index 5
+        // State for both sides
+        const penaltyTypes = [
+            { type: 'WAKTU', value: -0.50 },
+            { type: 'KELUAR_GARIS', value: -0.50 },
+            { type: 'SENJATA_JATUH', value: -0.50 },
+            { type: 'SENJATA_TIDAK_JATUH', value: -0.50 },
+            { type: 'TIDAK_ADA_SALAM_SUARA', value: -0.50 },
+            { type: 'BAJU_SENJATA_PATAH', value: -0.50 }
         ];
+
+        // Initialize state for side 1 and 2
+        function createInitialState() {
+            return penaltyTypes.map(p => ({ ...p, stack: [] }));
+        }
+
+        let appState = {
+            '1': createInitialState(),
+            '2': createInitialState()
+        };
+
+        let currentSide = '1'; // Default Side
+
+        function getCategories() {
+            return appState[currentSide];
+        }
+
+        // Switch Side Function
+        function switchSide(side) {
+            currentSide = side;
+            
+            // Update Buttons
+            const btn1 = document.getElementById('btnSide1');
+            const btn2 = document.getElementById('btnSide2');
+            
+            if (side === '1') {
+                btn1.className = "px-6 py-3 rounded-lg font-bold text-white bg-blue-600 shadow-md transform scale-105 ring-4 ring-blue-300 transition-all";
+                btn2.className = "px-6 py-3 rounded-lg font-bold text-gray-500 bg-gray-200 hover:bg-gray-300 transition-all";
+            } else {
+                btn1.className = "px-6 py-3 rounded-lg font-bold text-gray-500 bg-gray-200 hover:bg-gray-300 transition-all";
+                btn2.className = "px-6 py-3 rounded-lg font-bold text-white bg-red-600 shadow-md transform scale-105 ring-4 ring-red-300 transition-all";
+            }
+
+            // Update UI
+            updateAllRows();
+            updateGrandTotal();
+            fetchActivePenalties();
+        }
 
         // ---------------------------------------------------------
         // LOGIC UTAMA (ADD & CLEAR INCREMENTAL)
         // ---------------------------------------------------------
 
         function addNewPenalty(index) {
+            const categories = getCategories();
             const category = categories[index];
             
             // 1. Buat ID unik untuk penalti spesifik ini
@@ -162,11 +196,11 @@
         }
 
         function removeLastPenalty(index) {
+            const categories = getCategories();
             const category = categories[index];
             
             // Cek apakah ada penalti untuk dihapus?
             if (category.stack.length === 0) {
-                // Bisa tambahkan alert kecil atau abaikan
                 return; 
             }
 
@@ -181,8 +215,14 @@
             sendPenalty(idToRemove, category.type, category.value, 'clear');
         }
 
+        function updateAllRows() {
+            const categories = getCategories();
+            categories.forEach((_, index) => updateRowUI(index));
+        }
+
         // Fungsi Update Baris Tabel (Visual)
         function updateRowUI(index) {
+            const categories = getCategories();
             const category = categories[index];
             const count = category.stack.length;
             const currentTotal = count * category.value;
@@ -207,6 +247,7 @@
 
         // Fungsi Hitung Total Keseluruhan
         function updateGrandTotal() {
+            const categories = getCategories();
             let total = 0;
             categories.forEach(cat => {
                 total += (cat.stack.length * cat.value);
@@ -214,14 +255,14 @@
             document.getElementById('grandTotal').textContent = total.toFixed(2);
         }
 
-
         // ---------------------------------------------------------
         // KOMUNIKASI SERVER
         // ---------------------------------------------------------
 
+        const MATCH_ID = {{ $pertandingan->id }};
+
         function getMatchId() {
-            const pathParts = window.location.pathname.split('/');
-            return pathParts[pathParts.length - 1] || 1;
+            return MATCH_ID;
         }
 
         function sendPenalty(penaltyId, type, value, action) {
@@ -232,7 +273,8 @@
                 penalty_id: penaltyId,
                 type: type,
                 value: value,
-                action: action // 'add' or 'clear'
+                action: action, // 'add' or 'clear'
+                side: currentSide // Include side
             };
 
             // Ganti URL di bawah sesuai route Laravel Anda
@@ -240,7 +282,7 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}' // Pastikan ini dirender oleh Blade
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}' 
                 },
                 body: JSON.stringify(data)
             })
@@ -248,9 +290,8 @@
             .then(result => {
                 if (result.status !== 'success') {
                     console.error('Server Error:', result.message);
-                    // Optional: Revert local changes if server fails
                 } else {
-                    console.log(`Success: ${action} ${type}`);
+                    console.log(`Success: ${action} ${type} Side: ${currentSide}`);
                     // Refresh list bawah segera
                     fetchActivePenalties(); 
                 }
@@ -264,16 +305,18 @@
         // SYNC DATA DARI SERVER (MONITORING)
         // ---------------------------------------------------------
 
+        // ---------------------------------------------------------
+        // SYNC DATA DARI SERVER
+        // ---------------------------------------------------------
+
         function fetchActivePenalties() {
             const matchId = getMatchId();
             
-            // Ganti URL API sesuai route Anda
             fetch(`/api/seni/ganda/events/${matchId}`)
                 .then(response => response.json())
                 .then(result => {
-                    // API returns {status: 'success', data: {...}}
                     if (result.status === 'success' && result.data) {
-                        renderActivePenalties(result.data.penalties || [], result.data.total_penalties || 0);
+                        syncStateWithServer(result.data.penalties || []);
                     } else {
                         console.error('Unexpected API response:', result);
                     }
@@ -281,56 +324,42 @@
                 .catch(error => console.error('Error fetching penalties:', error));
         }
 
-        function renderActivePenalties(penalties, totalPenalties) {
-            const listDiv = document.getElementById('activePenaltiesList');
-            const totalSpan = document.getElementById('activePenaltiesTotal');
-            
-            const activePenalties = penalties.filter(p => p.status === 'active');
-            
-            totalSpan.textContent = totalPenalties.toFixed(2);
+        function syncStateWithServer(serverPenalties) {
+            // 1. Reset current side stack
+            const categories = getCategories();
+            categories.forEach(cat => {
+                cat.stack = [];
+            });
 
-            if (activePenalties.length === 0) {
-                listDiv.innerHTML = '<div class="text-center text-gray-500 py-8">Belum ada penalti aktif</div>';
-                return;
-            }
-            
-            // Urutkan dari yang terbaru
-            activePenalties.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            // 2. Filter active penalties for current side
+            const activePenalties = serverPenalties.filter(p => 
+                p.status === 'active' && (p.side == currentSide || !p.side)
+            );
 
-            listDiv.innerHTML = activePenalties.map(penalty => `
-                <div class="bg-red-50 border border-red-200 rounded px-4 py-2 flex justify-between items-center text-sm">
-                    <div>
-                        <div class="font-bold text-red-700">${penalty.type.replace(/_/g, ' ')}</div>
-                        <div class="text-xs text-gray-500">${new Date(penalty.timestamp).toLocaleTimeString('id-ID')}</div>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <span class="text-red-600 font-bold">${penalty.value.toFixed(2)}</span>
-                        <!-- Tombol hapus spesifik dari list bawah -->
-                        <button 
-                            onclick="forceClearPenalty('${penalty.penalty_id}')" 
-                            class="text-gray-400 hover:text-red-500 transition-colors" title="Hapus item ini saja">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-            `).join('');
+            // 3. Sort by timestamp ascending (Oldest first) so we push to stack in order
+            activePenalties.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+            // 4. Populate stacks
+            activePenalties.forEach(p => {
+                // Find matching category index
+                const catIndex = penaltyTypes.findIndex(pt => pt.type === p.type);
+                if (catIndex !== -1) {
+                    categories[catIndex].stack.push(p.penalty_id);
+                }
+            });
+
+            // 5. Update UI
+            updateAllRows();
+            updateGrandTotal();
         }
 
-        // Fungsi untuk menghapus penalti spesifik dari list bawah (jika diperlukan)
-        function forceClearPenalty(penaltyId) {
-            sendPenalty(penaltyId, 'MANUAL_CLEAR', -0.5, 'clear');
-            // Catatan: Ini mungkin tidak mengupdate "stack" lokal di tabel atas secara otomatis
-            // kecuali kita me-reload halaman atau membuat logika sinkronisasi yang lebih kompleks.
-            // Namun secara data di server akan benar.
-        }
+
 
         // Inisialisasi
         document.addEventListener('DOMContentLoaded', function() {
+            updateAllRows();
             updateGrandTotal();
-            fetchActivePenalties(); // Initial fetch
-            // Removed setInterval - will be triggered by WebSocket events
+            fetchActivePenalties(); 
         });
     </script>
 </body>

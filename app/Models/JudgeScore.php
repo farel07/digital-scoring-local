@@ -28,6 +28,7 @@ class JudgeScore extends Model
         'kekuatan',
         'penampilan',
         'total',
+        'side',
     ];
 
     /**

@@ -25,6 +25,7 @@ class TunggalReguScore extends Model
         'category_score',
         'total_score',
         'errors_per_jurus',
+        'side',
     ];
 
     /**

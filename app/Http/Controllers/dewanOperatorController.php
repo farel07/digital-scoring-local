@@ -39,6 +39,26 @@ class dewanOperatorController extends Controller
         ]);
     }
 
+    public function index_ganda_penonton($id)
+    {
+        // Same pattern as index_ganda: $id is user_id, resolve to active match
+        $pertandingan = \App\Helpers\MatchResolver::getActiveMatchForUser($id);
+
+        if (!$pertandingan) {
+            return response()->view('errors.no-active-match', [
+                'message' => 'Tidak ada pertandingan yang sedang berlangsung di arena Anda.'
+            ], 404);
+        }
+
+        $matchId = $pertandingan->id;
+        $jumlahJuri = request()->query('jumlah', 4);
+
+        return view('seni.ganda.penonton', [
+            'id' => $matchId,
+            'jumlahJuri' => $jumlahJuri
+        ]);
+    }
+
     public function index_tunggal_regu($userId)
     {
         // Get active match for this user (same pattern as juri)
@@ -54,7 +74,10 @@ class dewanOperatorController extends Controller
         $jumlahJuri = request()->query('jumlah', 4);
 
         // Determine max jurus based on match type
-        $maxJurus = $pertandingan->kelas->jenis_pertandingan === 'tunggal' ? 14 : 12;
+        $matchType = $pertandingan->kelas->jenis_pertandingan;
+        $maxJurus = $matchType === 'tunggal' ? 14 : 12;
+
+        $penaltyRules = \App\Models\PenaltyRule::where('category', 'tunggal_regu')->get();
 
         return view('seni.tunggal_regu.dewanOperator', [
             'id' => $pertandingan->id,
@@ -62,7 +85,39 @@ class dewanOperatorController extends Controller
             'pertandingan' => $pertandingan,
             'jumlahJuri' => $jumlahJuri,
             'maxJurus' => $maxJurus,
-            'matchType' => $pertandingan->kelas->jenis_pertandingan
+            'matchType' => $matchType,
+            'penaltyRules' => $penaltyRules
+        ]);
+    }
+
+    public function index_tunggal_regu_penonton($userId)
+    {
+        // Same pattern as dewan operator: resolve user_id to active match
+        $pertandingan = MatchResolver::getActiveMatchForUser($userId);
+
+        if (!$pertandingan) {
+            return response()->view('errors.no-active-match', [
+                'message' => 'Tidak ada pertandingan yang sedang berlangsung di arena Anda.'
+            ], 404);
+        }
+
+        $user = User::find($userId);
+        $jumlahJuri = request()->query('jumlah', 4);
+
+        // Determine max jurus based on match type
+        $matchType = $pertandingan->kelas->jenis_pertandingan;
+        $maxJurus = $matchType === 'tunggal' ? 14 : 12;
+
+        $penaltyRules = \App\Models\PenaltyRule::where('category', 'tunggal_regu')->get();
+
+        return view('seni.tunggal_regu.penonton', [
+            'id' => $pertandingan->id,
+            'user' => $user,
+            'pertandingan' => $pertandingan,
+            'jumlahJuri' => $jumlahJuri,
+            'maxJurus' => $maxJurus,
+            'matchType' => $matchType,
+            'penaltyRules' => $penaltyRules
         ]);
     }
 }
