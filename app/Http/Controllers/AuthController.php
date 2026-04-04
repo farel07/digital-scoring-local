@@ -104,6 +104,11 @@ class AuthController extends Controller
             return $this->getOperatorRoute($matchType, $pertandinganId);
         }
 
+        // Route for Timer Tanding role
+        if ($role === 'timer_tanding') {
+            return "/timer-tanding/{$userId}";
+        }
+
         // Default fallback
         return '/';
     }

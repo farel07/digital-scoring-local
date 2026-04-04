@@ -90,6 +90,7 @@ class TandingPertandinganSeeder extends Seeder
         $juriTanding3 = DB::table('users')->where('username', 'juri_tanding_3')->first();
         $dewanTanding1 = DB::table('users')->where('username', 'dewan_tanding_1')->first();
         $operator2 = DB::table('users')->where('username', 'operator2')->first();
+        $timerTanding1 = DB::table('users')->where('username', 'timer_tanding_1')->first();
 
         // ========================================
         // 3. ASSIGN USERS KE ARENA
@@ -145,6 +146,15 @@ class TandingPertandinganSeeder extends Seeder
         if ($dewanTanding1) {
             $userArenaAssignments[] = [
                 'user_id' => $dewanTanding1->id,
+                'arena_id' => 2, // Arena B
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+
+        if ($timerTanding1) {
+            $userArenaAssignments[] = [
+                'user_id' => $timerTanding1->id,
                 'arena_id' => 2, // Arena B
                 'created_at' => now(),
                 'updated_at' => now(),

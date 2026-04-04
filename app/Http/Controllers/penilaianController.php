@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Pertandingan;
 use App\Models\TandingMatch;
 
@@ -35,15 +34,18 @@ class penilaianController extends Controller
             ->get();
 
         // Calculate technique statistics (count of each technique per team)
+        // Filter points > 0 to exclude juri2 confirmation records (points=0)
         $techniqueStats = [
             'blue' => [
                 'pukul' => $tandingMatch->scores()
                     ->where('status', 'sah')
+                    ->where('points', '>', 0)
                     ->where('team', 'blue')
                     ->where('technique', 'PUKUL')
                     ->count(),
                 'tendang' => $tandingMatch->scores()
                     ->where('status', 'sah')
+                    ->where('points', '>', 0)
                     ->where('team', 'blue')
                     ->where('technique', 'TENDANG')
                     ->count(),
@@ -51,11 +53,13 @@ class penilaianController extends Controller
             'red' => [
                 'pukul' => $tandingMatch->scores()
                     ->where('status', 'sah')
+                    ->where('points', '>', 0)
                     ->where('team', 'red')
                     ->where('technique', 'PUKUL')
                     ->count(),
                 'tendang' => $tandingMatch->scores()
                     ->where('status', 'sah')
+                    ->where('points', '>', 0)
                     ->where('team', 'red')
                     ->where('technique', 'TENDANG')
                     ->count(),
@@ -63,12 +67,14 @@ class penilaianController extends Controller
         ];
 
         return view('tanding.penilaian', [
-            'id' => $id,
-            'pertandingan' => $pertandingan,
-            'tandingMatch' => $tandingMatch,
-            'scores' => $scores,
-            'penalties' => $penalties,
+            'id'             => $id,
+            'pertandingan'   => $pertandingan,
+            'tandingMatch'   => $tandingMatch,
+            'scores'         => $scores,
+            'penalties'      => $penalties,
             'techniqueStats' => $techniqueStats,
+            'playerBlue'     => $pertandingan->players()->where('side_number', 1)->first(), // side_number 1 = Blue
+            'playerRed'      => $pertandingan->players()->where('side_number', 2)->first(), // side_number 2 = Red
         ]);
     }
 }

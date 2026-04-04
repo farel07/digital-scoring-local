@@ -78,6 +78,14 @@ class UserSeeder extends Seeder
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
+            [
+                'username' => 'timer_tanding_1',
+                'password' => Hash::make('password'),
+                'role' => 'timer_tanding',
+                'name' => 'Timer Tanding 1',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
         ];
 
         DB::table('users')->insert($users);

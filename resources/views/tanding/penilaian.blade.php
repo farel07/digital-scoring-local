@@ -157,8 +157,8 @@
             {{-- Title --}}
             <div class="d-flex justify-content-between title-section flex-wrap">
                 <div class="m-2">
-                    <p class="text-start m-0">Kontingen Biru</p>
-                    <h5 class="text-primary">Nama Pemain Biru</h5>
+                    <p class="text-start m-0">{{ $playerBlue->player_contingent ?? 'Kontingen Biru' }}</p>
+                    <h5 class="text-primary">{{ $playerBlue->player_name ?? 'Pemain Biru' }}</h5>
                 </div>
                 <div class="m-2">
                     <div class="px-3 pt-2 pt-md-5 text-dark text-center" style="border-radius: 10px">
@@ -166,8 +166,8 @@
                     </div>
                 </div>
                 <div class="mt-2 me-2 text-end">
-                    <p class="m-0">Kontingen Merah</p>
-                    <h5 class="text-danger">Nama Pemain Merah</h5>
+                    <p class="m-0">{{ $playerRed->player_contingent ?? 'Kontingen Merah' }}</p>
+                    <h5 class="text-danger">{{ $playerRed->player_name ?? 'Pemain Merah' }}</h5>
                 </div>
             </div>
 

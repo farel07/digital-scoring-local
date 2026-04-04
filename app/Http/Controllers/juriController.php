@@ -2,21 +2,19 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
+use App\Events\KirimPoinSeniTR;
+use App\Events\KirimPoinTanding;
+use App\Events\ValidationCompleted;
+use App\Events\ValidationVoteReceived;
+use App\Models\Pertandingan;
 use App\Models\TandingMatch;
 use App\Models\TandingScore;
+use App\Models\User;
 use App\Models\ValidationRequest;
 use App\Models\ValidationVote;
 use Illuminate\Http\Request;
-use App\Events\KirimPoinSeniTR;
-use App\Events\KirimPoinTanding;
-use App\Events\ValidationVoteReceived;
-use App\Events\ValidationCompleted;
-use App\Helpers\MatchResolver; // Add this
-use App\Services\TunggalReguService; // Add this
-use Illuminate\Support\Facades\Log; // Import Log
 use Illuminate\Support\Facades\Cache; // Jangan lupa import ini
-use App\Services\RealtimeService; // Add this if not already present
+// use App\Services\RealtimeService; // Add this if not already present
 
 
 
@@ -165,6 +163,7 @@ class juriController extends Controller
 
     public function tanding_index($id)
     {
+        $pertandingan = Pertandingan::findOrFail($id);
         // Validasi: Cek apakah user punya akses ke pertandingan ini
         $user_id = auth()->user()->id;
         $user = User::find($user_id);
@@ -179,7 +178,11 @@ class juriController extends Controller
             ], 403);
         }
 
-        return view('tanding.juri', ['id' => $id]);
+        return view('tanding.juri', [
+            'id' => $id,
+            'playerBlue'     => $pertandingan->players()->where('side_number', 1)->first(), // side_number 1 = Blue
+            'playerRed'      => $pertandingan->players()->where('side_number', 2)->first(), // side_number 2 = Red 
+        ]);
     }
 
     public function kirimPoin(Request $request)
@@ -200,40 +203,42 @@ class juriController extends Controller
         if (!$pendingVote) {
             // --- KASUS A: Orang Pertama ---
 
-            Cache::put($cacheKey, [
-                'first_juri_id' => $juriId,
-                'poin' => $poinValue
-            ], now()->addSeconds(3));
-
             // DATABASE PERSISTENCE: Get or create tanding match
             $tandingMatch = TandingMatch::firstOrCreate(
                 ['pertandingan_id' => $pertandinganId],
                 [
                     'current_round' => 1,
-                    'match_status' => 'in_progress',
-                    'started_at' => now()
+                    'match_status'  => 'in_progress',
+                    'started_at'    => now()
                 ]
             );
 
             // Save score to database (status: input)
-            TandingScore::create([
+            $score = TandingScore::create([
                 'tanding_match_id' => $tandingMatch->id,
-                'judge_id' => $juriId,
-                'team' => $filter,
-                'technique' => $type,
-                'points' => $type === 'TENDANG' ? 2 : 1, // Fixed: uppercase comparison
-                'round' => $tandingMatch->current_round,
-                'status' => 'input',
+                'judge_id'         => $juriId,
+                'team'             => $filter,
+                'technique'        => $type,
+                'points'           => $type === 'TENDANG' ? 2 : 1,
+                'round'            => $tandingMatch->current_round,
+                'status'           => 'input',
             ]);
+
+            // Simpan score_id di cache agar konfirmasi hanya update record ini
+            Cache::put($cacheKey, [
+                'first_juri_id' => $juriId,
+                'poin'          => $poinValue,
+                'score_id'      => $score->id, // ← ID spesifik record ini
+            ], now()->addSeconds(3));
 
             // 1. BROADCAST INPUT (Agar lampu juri di layar menyala)
             broadcast(new KirimPoinTanding([
-                'type' => $type,
-                'poin' => $poinValue,
+                'type'            => $type,
+                'poin'            => $poinValue,
                 'pertandingan_id' => $pertandinganId,
-                'filter' => $filter,
-                'juri_id' => $juriNumber, // Send juri number (1,2,3) not user_id
-                'status' => 'input' // <--- Status Input
+                'filter'          => $filter,
+                'juri_id'         => $juriNumber,
+                'status'          => 'input'
             ]));
 
             return response()->json(['status' => 'waiting']);
@@ -246,28 +251,32 @@ class juriController extends Controller
                 $tandingMatch = TandingMatch::where('pertandingan_id', $pertandinganId)->first();
 
                 if ($tandingMatch) {
-                    // DELETE all 'input' records for this technique/team combo
-                    // (We don't need to keep individual input records)
-                    TandingScore::where('tanding_match_id', $tandingMatch->id)
-                        ->where('team', $filter)
-                        ->where('technique', $type)
-                        ->where('status', 'input')
-                        ->delete();
+                    $points = $type === 'TENDANG' ? 2 : 1;
 
-                    // CREATE ONLY ONE validated score record
+                    // UPDATE hanya record SPESIFIK milik juri1 (berdasarkan score_id dari cache)
+                    // Ini mencegah semua 'input' record ter-update sekaligus jika juri1 tekan berkali-kali
+                    if (!empty($pendingVote['score_id'])) {
+                        TandingScore::where('id', $pendingVote['score_id'])
+                            ->where('status', 'input') // guard: jangan update jika sudah bukan input
+                            ->update([
+                                'status' => 'sah',
+                                'points' => $points,
+                            ]);
+                    }
+
+                    // Buat record histori untuk juri2 (konfirmator)
+                    // points = 0 → hanya histori, TIDAK dihitung di statistik teknik
                     TandingScore::create([
                         'tanding_match_id' => $tandingMatch->id,
-                        'judge_id' => $juriId, // Can use either juri's ID, or leave null
-                        'team' => $filter,
-                        'technique' => $type,
-                        'points' => $type === 'TENDANG' ? 2 : 1,
-                        'round' => $tandingMatch->current_round,
-                        'status' => 'sah', // Directly mark as validated
+                        'judge_id'         => $juriId,
+                        'team'             => $filter,
+                        'technique'        => $type,
+                        'points'           => 0,
+                        'round'            => $tandingMatch->current_round,
+                        'status'           => 'sah',
                     ]);
 
-                    // Update total score
-                    $points = $type === 'TENDANG' ? 2 : 1; // Fixed: uppercase comparison
-
+                    // Update total skor di TandingMatch (hanya sekali per konfirmasi)
                     if ($filter === 'blue') {
                         $tandingMatch->increment('blue_total_score', $points);
                     } else {
@@ -299,6 +308,21 @@ class juriController extends Controller
                 return response()->json(['status' => 'valid']);
             }
 
+            // Juri yang sama menekan lagi sebelum juri lain konfirmasi (fast press).
+            // Cache tetap dibiarkan (juri2 masih bisa konfirmasi press pertama).
+            // Namun tetap simpan record input ke DB untuk histori log juri.
+            $tandingMatchFast = TandingMatch::where('pertandingan_id', $pertandinganId)->first();
+            if ($tandingMatchFast) {
+                TandingScore::create([
+                    'tanding_match_id' => $tandingMatchFast->id,
+                    'judge_id'         => $juriId,
+                    'team'             => $filter,
+                    'technique'        => $type,
+                    'points'           => $type === 'TENDANG' ? 2 : 1,
+                    'round'            => $tandingMatchFast->current_round,
+                    'status'           => 'input',
+                ]);
+            }
             return response()->json(['status' => 'ignored']);
         }
     }
@@ -479,7 +503,56 @@ class juriController extends Controller
 
         return response()->json([
             'status' => 'voted',
-            'vote' => $vote
+            'vote'   => $vote
         ]);
+    }
+
+    /**
+     * Return ordered score log grouped by round for a specific juri+match.
+     * GET /juri-tanding/score-log?pertandingan_id=X&juri_id=Y
+     *
+     * Setiap juri kini punya record sendiri di tanding_scores:
+     *   - Juri1: record 'input' di-UPDATE ke 'sah' (judge_id tetap juri1)
+     *   - Juri2: record baru 'sah' dengan points=0 (histori konfirmasi)
+     * Cukup query WHERE judge_id = X untuk mendapat histori lengkap per juri.
+     */
+    public function getJuriScoreLog(Request $request)
+    {
+        $pertandinganId = $request->input('pertandingan_id');
+        $juriId         = $request->input('juri_id');
+
+        $tandingMatch = TandingMatch::where('pertandingan_id', $pertandinganId)->first();
+
+        $emptyRounds = ['1' => [], '2' => [], '3' => []];
+
+        if (!$tandingMatch) {
+            return response()->json([
+                'current_round' => 1,
+                'blue'          => $emptyRounds,
+                'red'           => $emptyRounds,
+            ]);
+        }
+
+        // Semua record yang dimiliki juri ini (input + sah) — diurutkan by waktu
+        $rows = TandingScore::where('tanding_match_id', $tandingMatch->id)
+            ->where('judge_id', $juriId)
+            ->orderBy('created_at')
+            ->get(['team', 'technique', 'round']);
+
+        $result = [
+            'current_round' => $tandingMatch->current_round ?? 1,
+            'blue'          => ['1' => [], '2' => [], '3' => []],
+            'red'           => ['1' => [], '2' => [], '3' => []],
+        ];
+
+        foreach ($rows as $row) {
+            $team  = $row->team;
+            $round = (string)($row->round ?? 1);
+            if (isset($result[$team][$round])) {
+                $result[$team][$round][] = strtoupper($row->technique);
+            }
+        }
+
+        return response()->json($result);
     }
 }
