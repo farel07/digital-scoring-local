@@ -1,0 +1,54 @@
+﻿
+  Dropping all tables  319ms DONE
+
+   INFO  Preparing database.  
+
+  Creating migration table  25ms DONE
+
+   INFO  Running migrations.  
+
+  2014_10_12_100000_create_password_reset_tokens_table  20ms DONE
+  2019_08_19_000000_create_failed_jobs_table  50ms DONE
+  2019_12_14_000001_create_personal_access_tokens_table  66ms DONE
+  2024_01_01_000001_create_users_table  48ms DONE
+  2024_01_01_000002_create_arena_table  23ms DONE
+  2024_01_01_000003_create_kelas_table  22ms DONE
+  2024_01_01_000004_create_user_arena_table  251ms DONE
+  2024_01_01_000005_create_pertandingan_table  269ms DONE
+  2024_01_01_000006_create_pertandingan_player_table  91ms DONE
+  2024_01_01_000007_create_judge_scores_table  180ms DONE
+  2024_01_01_000008_create_penalties_table  124ms DONE
+  2024_01_01_000009_create_tunggal_regu_scores_table  171ms DONE
+  2026_01_11_151613_create_tanding_matches_table  108ms DONE
+  2026_01_11_151617_create_tanding_scores_table  173ms DONE
+  2026_01_11_151620_create_tanding_penalties_table  106ms DONE
+  2026_01_11_201500_fix_tunggal_regu_errors_per_jurus_encoding  1ms DONE
+  2026_02_01_142310_create_validation_requests_table  158ms DONE
+  2026_02_01_142325_create_validation_votes_table  137ms DONE
+  2026_02_03_161532_add_side_to_penalties_table  42ms DONE
+  2026_02_03_165918_add_side_to_judge_scores_table  18ms DONE
+  2026_02_03_173957_add_side_tunggal_regu  16ms DONE
+  2026_02_04_001418_add_side_to_tunggal_regu_scores_table  2ms DONE
+  2026_02_12_073522_update_judge_scores_unique_constraint  6ms FAIL
+
+   Illuminate\Database\QueryException 
+
+  SQLSTATE[HY000]: General error: 1553 Cannot drop index 'judge_scores_pertandingan_id_user_id_unique': needed in a foreign key constraint (Connection: mysql, SQL: alter table `judge_scores` drop index `judge_scores_pertandingan_id_user_id_unique`)
+
+  at vendor\laravel\framework\src\Illuminate\Database\Connection.php:829
+    825Γûò                     $this->getName(), $query, $this->prepareBindings($bindings), $e
+    826Γûò                 );
+    827Γûò             }
+    828Γûò 
+  Γ₧£ 829Γûò             throw new QueryException(
+    830Γûò                 $this->getName(), $query, $this->prepareBindings($bindings), $e
+    831Γûò             );
+    832Γûò         }
+    833Γûò     }
+
+  1   vendor\laravel\framework\src\Illuminate\Database\Connection.php:587
+      PDOException::("SQLSTATE[HY000]: General error: 1553 Cannot drop index 'judge_scores_pertandingan_id_user_id_unique': needed in a foreign key constraint")
+
+  2   vendor\laravel\framework\src\Illuminate\Database\Connection.php:587
+      PDOStatement::execute()
+

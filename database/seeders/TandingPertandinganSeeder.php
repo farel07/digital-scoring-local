@@ -193,6 +193,25 @@ class TandingPertandinganSeeder extends Seeder
                 'arena_id' => 2, // Arena B
                 'next_match_id' => null,
                 'status' => 'berlangsung', // Sedang berlangsung
+                'jenis_pertandingan' => 'prestasi',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'kelas_id' => $kelasTanding->id,
+                'arena_id' => 2, // Arena B
+                'next_match_id' => null,
+                'status' => 'berlangsung', // Sedang berlangsung
+                'jenis_pertandingan' => 'pemasalan',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'kelas_id' => $kelasTanding->id,
+                'arena_id' => 2, // Arena B
+                'next_match_id' => null,
+                'status' => 'berlangsung', // Sedang berlangsung
+                'jenis_pertandingan' => 'pemasalan',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
@@ -201,6 +220,7 @@ class TandingPertandinganSeeder extends Seeder
                 'arena_id' => 2, // Arena B
                 'next_match_id' => null,
                 'status' => 'belum_dimulai', // Belum dimulai
+                'jenis_pertandingan' => 'prestasi',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
@@ -209,6 +229,7 @@ class TandingPertandinganSeeder extends Seeder
                 'arena_id' => 2, // Arena B
                 'next_match_id' => null,
                 'status' => 'belum_dimulai', // Belum dimulai
+                'jenis_pertandingan' => 'prestasi',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
@@ -223,95 +244,193 @@ class TandingPertandinganSeeder extends Seeder
             ->pluck('id');
 
         // ========================================
-        // 6. BUAT TANDING MATCHES (untuk pertandingan yang sedang berlangsung)
+        // 6. BUAT TANDING MATCHES (untuk semua pertandingan yang sedang berlangsung)
         // ========================================
 
-        if (count($pertandinganIds) >= 1) {
-            // Buat tanding match untuk pertandingan pertama (yang sedang berlangsung)
-            $tandingMatches = [
-                [
-                    'pertandingan_id' => $pertandinganIds[0],
-                    'current_round' => 1,
-                    'blue_total_score' => 0, // Skor awal untuk simulasi
-                    'red_total_score' => 0,  // Skor awal untuk simulasi
-                    'blue_disqualified' => false,
-                    'red_disqualified' => false,
-                    'match_status' => 'in_progress',
-                    'started_at' => now()->subMinutes(5), // Dimulai 5 menit yang lalu
-                    'finished_at' => null,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ],
-            ];
+        $tandingMatches = [];
 
+        // [0] Prestasi - sedang berlangsung
+        if (count($pertandinganIds) >= 1) {
+            $tandingMatches[] = [
+                'pertandingan_id' => $pertandinganIds[0],
+                'current_round' => 1,
+                'blue_total_score' => 4,
+                'red_total_score' => 2,
+                'blue_disqualified' => false,
+                'red_disqualified' => false,
+                'match_status' => 'in_progress',
+                'started_at' => now()->subMinutes(5),
+                'finished_at' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+
+        // [1] Pemasalan - sedang berlangsung
+        if (count($pertandinganIds) >= 2) {
+            $tandingMatches[] = [
+                'pertandingan_id' => $pertandinganIds[1],
+                'current_round' => 2,
+                'blue_total_score' => 6,
+                'red_total_score' => 6,
+                'blue_disqualified' => false,
+                'red_disqualified' => false,
+                'match_status' => 'in_progress',
+                'started_at' => now()->subMinutes(10),
+                'finished_at' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+
+        // [2] Pemasalan - sedang berlangsung
+        if (count($pertandinganIds) >= 3) {
+            $tandingMatches[] = [
+                'pertandingan_id' => $pertandinganIds[2],
+                'current_round' => 1,
+                'blue_total_score' => 0,
+                'red_total_score' => 0,
+                'blue_disqualified' => false,
+                'red_disqualified' => false,
+                'match_status' => 'in_progress',
+                'started_at' => now()->subMinutes(1),
+                'finished_at' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+
+        if (!empty($tandingMatches)) {
             DB::table('tanding_matches')->insert($tandingMatches);
         }
 
         // ========================================
-        // 7. TAMBAH PLAYERS UNTUK PERTANDINGAN TANDING
+        // 7. TAMBAH PLAYERS UNTUK SEMUA PERTANDINGAN TANDING
         // ========================================
 
-        if (count($pertandinganIds) >= 3) {
-            $players = [
-                // Pertandingan 1 (sedang berlangsung)
-                [
-                    'pertandingan_id' => $pertandinganIds[0],
-                    'player_name' => 'Ahmad Tanding Blue',
-                    'player_contingent' => 'INDONESIA',
-                    'side_number' => 1, // Blue
-                    'total_score' => 0.00,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ],
-                [
-                    'pertandingan_id' => $pertandinganIds[0],
-                    'player_name' => 'Budi Tanding Red',
-                    'player_contingent' => 'MALAYSIA',
-                    'side_number' => 2, // Red
-                    'total_score' => 0.00,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ],
-                // Pertandingan 2 (belum dimulai)
-                [
-                    'pertandingan_id' => $pertandinganIds[1],
-                    'player_name' => 'Charlie Blue',
-                    'player_contingent' => 'THAILAND',
-                    'side_number' => 1, // Blue
-                    'total_score' => 0.00,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ],
-                [
-                    'pertandingan_id' => $pertandinganIds[1],
-                    'player_name' => 'David Red',
-                    'player_contingent' => 'SINGAPORE',
-                    'side_number' => 2, // Red
-                    'total_score' => 0.00,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ],
-                // Pertandingan 3 (belum dimulai)
-                [
-                    'pertandingan_id' => $pertandinganIds[2],
-                    'player_name' => 'Eko Blue',
-                    'player_contingent' => 'VIETNAM',
-                    'side_number' => 1, // Blue
-                    'total_score' => 0.00,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ],
-                [
-                    'pertandingan_id' => $pertandinganIds[2],
-                    'player_name' => 'Fajar Red',
-                    'player_contingent' => 'PHILIPPINES',
-                    'side_number' => 2, // Red
-                    'total_score' => 0.00,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ],
-            ];
+        $players = [];
 
+        // [0] Prestasi - berlangsung
+        if (count($pertandinganIds) >= 1) {
+            $players = array_merge($players, [
+                [
+                    'pertandingan_id' => $pertandinganIds[0],
+                    'player_name' => 'Ahmad Fauzi',
+                    'player_contingent' => 'DKI JAKARTA',
+                    'side_number' => 1, // Blue
+                    'total_score' => 0.00,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ],
+                [
+                    'pertandingan_id' => $pertandinganIds[0],
+                    'player_name' => 'Budi Santoso',
+                    'player_contingent' => 'JAWA BARAT',
+                    'side_number' => 2, // Red
+                    'total_score' => 0.00,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ],
+            ]);
+        }
+
+        // [1] Pemasalan - berlangsung
+        if (count($pertandinganIds) >= 2) {
+            $players = array_merge($players, [
+                [
+                    'pertandingan_id' => $pertandinganIds[1],
+                    'player_name' => 'Cahyo Prabowo',
+                    'player_contingent' => 'JAWA TENGAH',
+                    'side_number' => 1, // Blue
+                    'total_score' => 0.00,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ],
+                [
+                    'pertandingan_id' => $pertandinganIds[1],
+                    'player_name' => 'Dedi Kurniawan',
+                    'player_contingent' => 'JAWA TIMUR',
+                    'side_number' => 2, // Red
+                    'total_score' => 0.00,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ],
+            ]);
+        }
+
+        // [2] Pemasalan - berlangsung
+        if (count($pertandinganIds) >= 3) {
+            $players = array_merge($players, [
+                [
+                    'pertandingan_id' => $pertandinganIds[2],
+                    'player_name' => 'Eko Prasetyo',
+                    'player_contingent' => 'SUMATERA UTARA',
+                    'side_number' => 1, // Blue
+                    'total_score' => 0.00,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ],
+                [
+                    'pertandingan_id' => $pertandinganIds[2],
+                    'player_name' => 'Fajar Hidayat',
+                    'player_contingent' => 'SULAWESI SELATAN',
+                    'side_number' => 2, // Red
+                    'total_score' => 0.00,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ],
+            ]);
+        }
+
+        // [3] Prestasi - belum dimulai
+        if (count($pertandinganIds) >= 4) {
+            $players = array_merge($players, [
+                [
+                    'pertandingan_id' => $pertandinganIds[3],
+                    'player_name' => 'Guntur Wibowo',
+                    'player_contingent' => 'KALIMANTAN TIMUR',
+                    'side_number' => 1, // Blue
+                    'total_score' => 0.00,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ],
+                [
+                    'pertandingan_id' => $pertandinganIds[3],
+                    'player_name' => 'Hendra Saputra',
+                    'player_contingent' => 'BALI',
+                    'side_number' => 2, // Red
+                    'total_score' => 0.00,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ],
+            ]);
+        }
+
+        // [4] Prestasi - belum dimulai
+        if (count($pertandinganIds) >= 5) {
+            $players = array_merge($players, [
+                [
+                    'pertandingan_id' => $pertandinganIds[4],
+                    'player_name' => 'Irfan Maulana',
+                    'player_contingent' => 'RIAU',
+                    'side_number' => 1, // Blue
+                    'total_score' => 0.00,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ],
+                [
+                    'pertandingan_id' => $pertandinganIds[4],
+                    'player_name' => 'Joko Susilo',
+                    'player_contingent' => 'NUSA TENGGARA BARAT',
+                    'side_number' => 2, // Red
+                    'total_score' => 0.00,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ],
+            ]);
+        }
+
+        if (!empty($players)) {
             DB::table('pertandingan_player')->insert($players);
         }
 
@@ -319,9 +438,9 @@ class TandingPertandinganSeeder extends Seeder
         echo "   - Created/verified Juri Tanding 1, 2, 3\n";
         echo "   - Created/verified Dewan Tanding 1\n";
         echo "   - Assigned users to Arena B\n";
-        echo "   - Created 3 Tanding pertandingan\n";
-        echo "   - Created 1 Tanding match (in_progress) with sample scores\n";
-        echo "   - Added players to matches\n\n";
+        echo "   - Created 5 Tanding pertandingan (1 prestasi, 2 pemasalan berlangsung, 2 prestasi belum dimulai)\n";
+        echo "   - Created 3 Tanding matches (in_progress)\n";
+        echo "   - Added 2 players for each match (10 players total)\n\n";
 
         echo "📋 Login Credentials:\n";
         echo "   Juri 1: juri_tanding_1 / password\n";

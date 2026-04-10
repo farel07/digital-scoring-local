@@ -18,6 +18,7 @@ class PertandinganSeeder extends Seeder
                 'arena_id' => 1, // Arena A
                 'next_match_id' => null,
                 'status' => 'berlangsung', // ACTIVE MATCH!
+                'jenis_pertandingan' => 'prestasi',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
@@ -26,6 +27,7 @@ class PertandinganSeeder extends Seeder
                 'arena_id' => 2, // Arena B
                 'next_match_id' => null,
                 'status' => 'belum_dimulai',
+                'jenis_pertandingan' => 'prestasi',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
@@ -34,6 +36,7 @@ class PertandinganSeeder extends Seeder
                 'arena_id' => 1, // Arena A
                 'next_match_id' => null,
                 'status' => 'berlangsung', // ACTIVE TUNGGAL MATCH!
+                'jenis_pertandingan' => 'prestasi',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
@@ -42,6 +45,7 @@ class PertandinganSeeder extends Seeder
                 'arena_id' => 1, // Arena A
                 'next_match_id' => null,
                 'status' => 'berlangsung', // ACTIVE REGU MATCH!
+                'jenis_pertandingan' => 'prestasi',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],

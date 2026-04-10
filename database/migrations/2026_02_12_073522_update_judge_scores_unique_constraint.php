@@ -12,17 +12,6 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Get the actual index name from the database
-        $indexes = DB::select("SHOW INDEX FROM judge_scores WHERE Key_name LIKE '%pertandingan%user%' AND Non_unique = 0");
-
-        $uniqueIndexName = null;
-        foreach ($indexes as $index) {
-            if (stripos($index->Key_name, 'pertandingan') !== false && stripos($index->Key_name, 'user') !== false) {
-                $uniqueIndexName = $index->Key_name;
-                break;
-            }
-        }
-
         // STEP 1: Clean up duplicate records before changing constraint
         // Find and delete duplicates, keeping only the latest one
         DB::statement('
@@ -33,27 +22,31 @@ return new class extends Migration
             AND t1.id < t2.id
         ');
 
-        // STEP 2: Drop the old unique constraint using actual index name  
-        if ($uniqueIndexName) {
-            Schema::table('judge_scores', function (Blueprint $table) use ($uniqueIndexName) {
-                $table->dropIndex($uniqueIndexName);
-            });
-        } else {
-            // Fallback: try to drop by column names
+        // STEP 2: Drop ALL existing unique indexes (except PRIMARY) safely
+        $indexes = DB::select("SHOW INDEX FROM judge_scores WHERE Non_unique = 0");
+
+        foreach ($indexes as $index) {
+            $keyName = $index->Key_name;
+            if ($keyName === 'PRIMARY' || $keyName === 'judge_scores_match_user_side_unique') {
+                continue;
+            }
             try {
-                Schema::table('judge_scores', function (Blueprint $table) {
-                    $table->dropUnique(['pertandingan_id', 'user_id']);
+                Schema::table('judge_scores', function (Blueprint $table) use ($keyName) {
+                    $table->dropIndex($keyName);
                 });
             } catch (\Exception $e) {
-                // If it fails, the constraint might not exist or have a different name
-                echo "Warning: Could not drop unique constraint: " . $e->getMessage() . "\n";
+                // Ignore if already gone
             }
         }
 
-        // STEP 3: Add new unique constraint that includes side
-        Schema::table('judge_scores', function (Blueprint $table) {
-            $table->unique(['pertandingan_id', 'user_id', 'side'], 'judge_scores_match_user_side_unique');
-        });
+        // STEP 3: Add new unique constraint that includes side (if not already exists)
+        $newIndexExists = collect(DB::select("SHOW INDEX FROM judge_scores WHERE Key_name = 'judge_scores_match_user_side_unique'"))->isNotEmpty();
+
+        if (!$newIndexExists) {
+            Schema::table('judge_scores', function (Blueprint $table) {
+                $table->unique(['pertandingan_id', 'user_id', 'side'], 'judge_scores_match_user_side_unique');
+            });
+        }
     }
 
     /**
@@ -61,12 +54,20 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('judge_scores', function (Blueprint $table) {
-            // Drop the new constraint
-            $table->dropUnique('judge_scores_match_user_side_unique');
+        try {
+            Schema::table('judge_scores', function (Blueprint $table) {
+                $table->dropUnique('judge_scores_match_user_side_unique');
+            });
+        } catch (\Exception $e) {
+            // Ignore if not exists
+        }
 
-            // Restore the old constraint
-            $table->unique(['pertandingan_id', 'user_id']);
-        });
+        try {
+            Schema::table('judge_scores', function (Blueprint $table) {
+                $table->unique(['pertandingan_id', 'user_id']);
+            });
+        } catch (\Exception $e) {
+            // Ignore if already exists
+        }
     }
 };
