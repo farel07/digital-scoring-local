@@ -71,7 +71,10 @@
                 <div class="col-2">
                     <div class="p-3 border bg-light text-dark text-center" style="border-radius: 10px; height: 100%;">
                         <h5 class="text-bold">{{ $roundName ?? 'BABAK' }}</h5>
-                        <p class="m-auto">{{ $kelasInfo->jenisPertandingan->nama_jenis ?? 'Jenis' }}</p>
+                        <p class="m-auto">{{ $kelasInfo->jenis_pertandingan ?? 'Jenis' }}</p>
+                        <span class="badge {{ ($jenis_pertandingan ?? 'prestasi') === 'pemasalan' ? 'bg-warning text-dark' : 'bg-success' }} mt-1">
+                            {{ strtoupper($jenis_pertandingan ?? 'prestasi') }}
+                        </span>
                     </div>
                 </div>
             </div>
@@ -134,26 +137,38 @@
             {{-- round --}}
             <div class="row mt-3">
                 <div class="col-4">
-                    {{-- TAMBAHKAN ID DAN LOGIKA DISABLED --}}
                     <div class="btn btn-primary w-100 pt-4 @if($pertandingan && $pertandingan->current_round > 1) disabled @endif" style="height: 100px;" id="round1Btn" data-round="1">
                         <span class="text-light fs-2">ROUND 1</span>
                     </div>
                 </div>
                 <div class="col-4">
-                    {{-- TAMBAHKAN ID DAN LOGIKA DISABLED --}}
                     <div class="btn btn-primary w-100 pt-4 @if($pertandingan && $pertandingan->current_round > 2) disabled @endif" style="height: 100px" id="round2Btn" data-round="2">
                         <span class="text-light fs-2">ROUND 2</span>
                     </div>
                 </div>
 
+                {{-- Round 3: hanya tampil untuk prestasi (max_ronde = 3) --}}
+                @if(($max_ronde ?? 3) >= 3)
                 <div class="col-4">
-                    {{-- TAMBAHKAN ID --}}
-                    <div class="btn btn-primary w-100 pt-4 @if($pertandingan && $pertandingan->kelasPertandingan?->kategoriPertandingan?->nama_kategori == "Pemasalan") disabled @endif" style="height: 100px; " id="round3Btn" data-round="3">
+                    <div class="btn btn-primary w-100 pt-4" style="height: 100px;" id="round3Btn" data-round="3">
                         <span class="text-light fs-2">ROUND 3</span>
                     </div>
                 </div>
+                @else
+                {{-- Placeholder kosong agar layout col tetap simetris, tombol Round 3 disembunyikan --}}
+                <div class="col-4">
+                    <div class="btn btn-secondary w-100 pt-4 disabled" style="height: 100px; opacity: 0.35;" id="round3Btn" data-round="3">
+                        <span class="text-light fs-2">ROUND 3</span>
+                        <div><small class="text-light">(Pemasalan)</small></div>
+                    </div>
+                </div>
+                @endif
             </div>
             {{-- end of round --}}
+
+            {{-- Emit max_ronde to JS --}}
+            <input type="hidden" id="max_ronde_timer" value="{{ $max_ronde ?? 3 }}">
+            <input type="hidden" id="jenis_pertandingan_timer" value="{{ $jenis_pertandingan ?? 'prestasi' }}">
         @endif
     </div>
 </div>

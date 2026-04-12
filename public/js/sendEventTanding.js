@@ -5,6 +5,14 @@ const pertandinganId =
         .querySelector('meta[name="pertandingan-id"]')
         ?.getAttribute("content") || null;
 
+// Baca max_ronde dari hidden input (dikirim oleh blade)
+const maxRondeDewan = parseInt(
+    document.getElementById('max_ronde')?.value || '3', 10
+);
+
+// Round aktif saat ini (sinkron dengan timer)
+let activeRondeDewan = 1;
+
 // ── Batas maksimum per jenis penalti ──────────────────────────────────────────
 const LIMITS = {
     bina: 2,
@@ -226,4 +234,54 @@ function sendAction(action, filter = "blue") {
 document.addEventListener("DOMContentLoaded", () => {
     loadPenaltyCounts();
     loadPenaltyCountsPerRound();
+    highlightActiveRoundDewan(activeRondeDewan); // highlight round 1 awal
+    setupDewanRoundListener();                   // dengarkan perubahan ronde dari timer
 });
+
+// ── Highlight round aktif di halaman Dewan ────────────────────────────────────
+// Mengubah warna round-box (tengah) dan opacity baris score (kiri/kanan)
+function highlightActiveRoundDewan(roundNum) {
+    const active = Number(roundNum);
+
+    for (let r = 1; r <= maxRondeDewan; r++) {
+        // -- Round box indicator (I / II / III) --
+        const box = document.getElementById(`round-box-${r}`);
+        if (box) {
+            if (r === active) {
+                box.classList.add('active-round');
+            } else {
+                box.classList.remove('active-round');
+            }
+        }
+
+        // -- Score rows (blue & red per round) --
+        ['blue', 'red'].forEach(team => {
+            const row = document.getElementById(`round-row-${team}-${r}`);
+            if (!row) return;
+            if (r === active) {
+                row.classList.add('active-round-row');
+            } else {
+                row.classList.remove('active-round-row');
+            }
+        });
+    }
+
+    console.log(`🔵 Dewan: round aktif = ${active}`);
+}
+
+// ── Listen round change dari timer via Echo ───────────────────────────────────
+function setupDewanRoundListener() {
+    if (!window.Echo || !pertandinganId) {
+        setTimeout(setupDewanRoundListener, 500);
+        return;
+    }
+    window.Echo.channel(`timer-${pertandinganId}`).listen('.TimerUpdated', (event) => {
+        if (event.state === 'round_changed' && event.current_round) {
+            activeRondeDewan = Number(event.current_round);
+            highlightActiveRoundDewan(activeRondeDewan);
+            // Refresh score boxes agar data round baru langsung tampil
+            loadPenaltyCountsPerRound();
+            console.log(`🔄 Dewan: round berubah ke ${activeRondeDewan}`);
+        }
+    });
+}

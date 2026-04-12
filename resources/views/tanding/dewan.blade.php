@@ -216,6 +216,25 @@
         box-shadow: 0 2px 8px rgba(0,123,255,0.2);
     }
 
+    /* Active round indicator */
+    .round-indicator.active-round {
+        background-color: #ffc107 !important;
+        color: #000 !important;
+        font-weight: 700;
+        box-shadow: 0 0 10px rgba(255, 193, 7, 0.6);
+    }
+
+    /* Active round score row */
+    .round-score-row {
+        opacity: 0.45;
+    }
+    .round-score-row.active-round-row {
+        opacity: 1;
+        outline: 2px solid #ffc107;
+        border-radius: 8px;
+        padding: 4px;
+    }
+
     /* Responsive Design */
     @media (max-width: 768px) {
         .dewan-container {
@@ -271,6 +290,9 @@
                     <div class="match-info">
                         <p class="m-0 text-dark">PARTAI 2</p>
                         <p class="m-0 text-dark">ARENA 1</p>
+                        <span class="badge {{ $jenis_pertandingan === 'pemasalan' ? 'bg-warning text-dark' : 'bg-success' }} mt-1">
+                            {{ strtoupper($jenis_pertandingan) }}
+                        </span>
                     </div>
                 </div>
                 <div class="col-md-4 text-end">
@@ -294,9 +316,9 @@
                     @endforeach
                 </div>
 
-                {{-- Baris Nilai (Loop 3 Ronde) --}}
-                @for($i = 1; $i <= 3; $i++)
-                    <div class="d-flex gap-2 mt-2">
+                {{-- Baris Nilai (Loop dinamis sesuai max_ronde) --}}
+                @for($i = 1; $i <= $max_ronde; $i++)
+                    <div id="round-row-blue-{{ $i }}" class="d-flex gap-2 mt-2 round-score-row {{ $i === 1 ? 'active-round-row' : '' }}" style="transition: opacity 0.3s;">
                         @foreach($scoreColumns as $col)
                             <div class="flex-fill">
                                 <div class="score-value" id="penalty-blue-{{ $i }}-{{ $col['key'] }}">-</div>
@@ -326,8 +348,10 @@
                 <div class="center-panel">
                     {{-- <div class="score-label bg-warning text-white mb-3">ROUND</div> --}}
                     
-                    @foreach(['I', 'II', 'III'] as $round)
-                        <div class="round-indicator mb-2 mt-4">{{ $round }}</div>
+                    {{-- @foreach(['I', 'II', 'III'] as $round) --}}
+                    @foreach(array_slice(['I','II','III'], 0, $max_ronde) as $idx => $round)
+                        @php $rNum = $idx + 1; @endphp
+                        <div id="round-box-{{ $rNum }}" class="round-indicator round-box mb-2 mt-4 {{ $rNum === 1 ? 'active-round' : '' }}" style="transition: all 0.3s;">{{ $round }}</div>
                     @endforeach
 
                     <div class="mt-4 d-grid gap-2">
@@ -359,9 +383,9 @@
                     @endforeach
                 </div>
 
-                {{-- Baris Nilai (Loop 3 Ronde) --}}
-                @for($i = 1; $i <= 3; $i++)
-                    <div class="d-flex gap-2 justify-content-end mt-2">
+                {{-- Baris Nilai (Loop dinamis sesuai max_ronde) --}}
+                @for($i = 1; $i <= $max_ronde; $i++)
+                    <div id="round-row-red-{{ $i }}" class="d-flex gap-2 justify-content-end mt-2 round-score-row {{ $i === 1 ? 'active-round-row' : '' }}" style="transition: opacity 0.3s;">
                         @foreach($scoreColumns as $col)
                             <div class="flex-fill">
                                 <div class="score-value" id="penalty-red-{{ $i }}-{{ $col['key'] }}">-</div>
@@ -479,6 +503,10 @@
         </div>
     </div>
 </div>
+
+{{-- Hidden inputs for JS: pass jenis_pertandingan and max_ronde --}}
+<input type="hidden" id="jenis_pertandingan" value="{{ $jenis_pertandingan }}">
+<input type="hidden" id="max_ronde" value="{{ $max_ronde }}">
 
 <script src="/js/sendEventTanding.js"></script>
 <script src="/js/validationDewan.js"></script>

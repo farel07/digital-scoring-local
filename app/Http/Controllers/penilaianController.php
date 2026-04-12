@@ -67,14 +67,16 @@ class penilaianController extends Controller
         ];
 
         return view('tanding.penilaian', [
-            'id'             => $id,
-            'pertandingan'   => $pertandingan,
-            'tandingMatch'   => $tandingMatch,
-            'scores'         => $scores,
-            'penalties'      => $penalties,
-            'techniqueStats' => $techniqueStats,
-            'playerBlue'     => $pertandingan->players()->where('side_number', 1)->first(), // side_number 1 = Blue
-            'playerRed'      => $pertandingan->players()->where('side_number', 2)->first(), // side_number 2 = Red
+            'id'                  => $id,
+            'pertandingan'        => $pertandingan,
+            'tandingMatch'        => $tandingMatch,
+            'scores'              => $scores,
+            'penalties'           => $penalties,
+            'techniqueStats'      => $techniqueStats,
+            'jenis_pertandingan'  => $pertandingan->jenis_pertandingan ?? 'prestasi',
+            'max_ronde'           => $pertandingan->maxRonde(),
+            'playerBlue'          => $pertandingan->players()->where('side_number', 1)->first(),
+            'playerRed'           => $pertandingan->players()->where('side_number', 2)->first(),
         ]);
     }
 }

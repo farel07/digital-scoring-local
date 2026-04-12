@@ -202,9 +202,11 @@
 
                 <div class="col-2 justify-content-center text-center">
                     <div class="scoring">
-                        <div id="round-box-1" class="round-box p-1 mt-3 border bg-warning" style="border-radius: 10px;">I</div>
-                        <div id="round-box-2" class="round-box p-1 mt-3 border bg-light" style="border-radius: 10px;">II</div>
-                        <div id="round-box-3" class="round-box p-1 mt-3 border bg-light" style="border-radius: 10px;">III</div>
+                        @foreach(range(1, $max_ronde ?? 3) as $r)
+                            <div id="round-box-{{ $r }}" class="round-box p-1 mt-3 border {{ $r === 1 ? 'bg-warning' : 'bg-light' }}" style="border-radius: 10px;">
+                                {{ ['I','II','III'][$r-1] ?? $r }}
+                            </div>
+                        @endforeach
                     </div>
                 </div>
 
@@ -344,6 +346,10 @@
     <script>
         // Make PERTANDINGAN_ID available globally
         const PERTANDINGAN_ID = {{ $id }};
+        // Max ronde dan jenis pertandingan dari server
+        const MAX_RONDE = {{ $max_ronde ?? 3 }};
+        const JENIS_PERTANDINGAN = '{{ $jenis_pertandingan ?? 'prestasi' }}';
+        
         
         // Initial data from database
         const INITIAL_DATA = {!! json_encode([

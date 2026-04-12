@@ -360,8 +360,12 @@ window.Echo.channel(`timer-${PERTANDINGAN_ID}`).listen(
 
 // Function to highlight current round
 function highlightRound(roundNumber) {
+    // Gunakan MAX_RONDE dari global var (di-set oleh penilaian.blade.php),
+    // fallback ke 3 jika tidak tersedia (misal di halaman lain)
+    const maxRonde = (typeof MAX_RONDE !== 'undefined') ? MAX_RONDE : 3;
+
     // Reset all rounds to default (bg-light)
-    for (let i = 1; i <= 3; i++) {
+    for (let i = 1; i <= maxRonde; i++) {
         const roundBox = document.getElementById(`round-box-${i}`);
         if (roundBox) {
             roundBox.classList.remove("bg-warning");
