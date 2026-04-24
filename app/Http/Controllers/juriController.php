@@ -189,9 +189,11 @@ class juriController extends Controller
         }
 
         return view('tanding.juri', [
-            'id' => $id,
-            'playerBlue'     => $pertandingan->players()->where('side_number', 1)->first(), // side_number 1 = Blue
-            'playerRed'      => $pertandingan->players()->where('side_number', 2)->first(), // side_number 2 = Red 
+            'id'                 => $id,
+            'jenis_pertandingan' => $pertandingan->jenis_pertandingan ?? 'prestasi',
+            'max_ronde'          => $pertandingan->maxRonde(),
+            'playerBlue'         => $pertandingan->players()->where('side_number', 1)->first(),
+            'playerRed'          => $pertandingan->players()->where('side_number', 2)->first(),
         ]);
     }
 
@@ -541,11 +543,19 @@ class juriController extends Controller
 
         $tandingMatch = TandingMatch::where('pertandingan_id', $pertandinganId)->first();
 
-        $emptyRounds = ['1' => [], '2' => [], '3' => []];
+        // Determine max rounds dynamically
+        $pertandingan = Pertandingan::find($pertandinganId);
+        $maxRonde = $pertandingan ? $pertandingan->maxRonde() : 3;
+
+        $emptyRounds = [];
+        for ($r = 1; $r <= $maxRonde; $r++) {
+            $emptyRounds[(string)$r] = [];
+        }
 
         if (!$tandingMatch) {
             return response()->json([
                 'current_round' => 1,
+                'max_ronde'     => $maxRonde,
                 'blue'          => $emptyRounds,
                 'red'           => $emptyRounds,
             ]);
@@ -559,8 +569,9 @@ class juriController extends Controller
 
         $result = [
             'current_round' => $tandingMatch->current_round ?? 1,
-            'blue'          => ['1' => [], '2' => [], '3' => []],
-            'red'           => ['1' => [], '2' => [], '3' => []],
+            'max_ronde'     => $maxRonde,
+            'blue'          => $emptyRounds,
+            'red'           => $emptyRounds,
         ];
 
         foreach ($rows as $row) {

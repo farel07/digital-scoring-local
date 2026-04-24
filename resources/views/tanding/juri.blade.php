@@ -5,6 +5,9 @@
     <meta name="pertandingan-id" content="{{ $id }}">
     {{-- Meta tag untuk user ID agar JavaScript tahu juri mana yang sedang login --}}
     <meta name="user-id" content="{{ auth()->user()->id }}">
+    {{-- Meta tag untuk max ronde agar JS bisa menyesuaikan --}}
+    <meta name="max-ronde" content="{{ $max_ronde ?? 3 }}">
+    <meta name="jenis-pertandingan" content="{{ $jenis_pertandingan ?? 'prestasi' }}">
     <style>
         /* Score log box */
         .score-log-box {
@@ -28,6 +31,12 @@
         /* Red: same idea */
         .score-log-box.red-log   { direction: rtl; color: #dc3545; }
         .score-log-box.red-log span { direction: ltr; }
+
+        /* Round-box active (kuning, seperti penilaian) */
+        .round-box.bg-warning { box-shadow: 0 0 10px rgba(255, 193, 7, 0.6); }
+
+        /* Dim inactive score-log rows */
+        .score-log-box       { transition: opacity 0.3s, border 0.3s; }
     </style>
 @endsection
 
@@ -43,6 +52,9 @@
                 <div class="m-2">
                     <p class="m-0 fw-bold">PARTAI 2</p>
                     <p class="m-0 fw-bold">ARENA 1</p>
+                    <span class="badge {{ ($jenis_pertandingan ?? 'prestasi') === 'pemasalan' ? 'bg-warning text-dark' : 'bg-success' }} mt-1">
+                        {{ strtoupper($jenis_pertandingan ?? 'prestasi') }}
+                    </span>
                 </div>
                 <div class="mt-2 me-2">
                     <p class="text-end m-0">{{ $playerRed->player_contingent }}</p>
@@ -60,9 +72,8 @@
                     </div>
 
                     {{-- Score log boxes: 1 per round --}}
-                    @foreach([1,2,3] as $r)
+                    @foreach(range(1, $max_ronde ?? 3) as $r)
                     <div class="d-flex align-items-center gap-2 mt-2">
-                        {{-- <small class="text-muted fw-bold" style="min-width:20px">R{{ $r }}</small> --}}
                         <div class="score-log-box blue-log flex-grow-1" id="score-log-blue-{{ $r }}">
                             <span id="score-log-blue-inner-{{ $r }}"></span>
                         </div>
@@ -95,9 +106,10 @@
                 {{-- scoring --}}
                 <div class="col-3">
                     <div class="p-3 border bg-warning text-light text-center" style="border-radius: 10px">SCORE</div>
-                    <div class="p-3 mt-3 border bg-light text-center" style="border-radius: 10px">I</div>
-                    <div class="p-3 mt-3 border bg-light text-center" style="border-radius: 10px">II</div>
-                    <div class="p-3 mt-3 border bg-light text-center" style="border-radius: 10px">III</div>
+                    @foreach(range(1, $max_ronde ?? 3) as $r)
+                        @php $roman = ['I','II','III'][$r-1] ?? $r; @endphp
+                        <div id="round-box-{{ $r }}" class="round-box p-3 mt-3 border text-center {{ $r === 1 ? 'bg-warning text-white' : 'bg-light' }}" style="border-radius: 10px; transition: background-color 0.3s;">{{ $roman }}</div>
+                    @endforeach
                 </div>
                 {{-- end scoring --}}
 
@@ -106,9 +118,8 @@
                     <div class="p-3 border bg-danger text-light text-center" style="border-radius: 10px">TEAM RED</div>
 
                     {{-- Score log boxes: 1 per round --}}
-                    @foreach([1,2,3] as $r)
+                    @foreach(range(1, $max_ronde ?? 3) as $r)
                     <div class="d-flex align-items-center gap-2 mt-2">
-                        {{-- <small class="text-muted fw-bold" style="min-width:20px">R{{ $r }}</small> --}}
                         <div class="score-log-box red-log flex-grow-1" id="score-log-red-{{ $r }}">
                             <span id="score-log-red-inner-{{ $r }}"></span>
                         </div>
@@ -165,6 +176,12 @@
         </div>
     </div>
 
+    {{-- Define globals needed by listenTanding.js BEFORE loading it --}}
+    <script>
+        const PERTANDINGAN_ID = {{ $id }};
+        const MAX_RONDE = {{ $max_ronde ?? 3 }};
+        const JENIS_PERTANDINGAN = '{{ $jenis_pertandingan ?? 'prestasi' }}';
+    </script>
     <script src="/js/sendEventJuriTanding.js"></script>
     <script src="/js/listenTanding.js"></script>
     <script src="/js/validationJuri.js"></script>

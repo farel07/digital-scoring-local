@@ -254,8 +254,8 @@ class TandingPertandinganSeeder extends Seeder
             $tandingMatches[] = [
                 'pertandingan_id' => $pertandinganIds[0],
                 'current_round' => 1,
-                'blue_total_score' => 4,
-                'red_total_score' => 2,
+                'blue_total_score' => 0,
+                'red_total_score' => 0,
                 'blue_disqualified' => false,
                 'red_disqualified' => false,
                 'match_status' => 'in_progress',
@@ -270,9 +270,9 @@ class TandingPertandinganSeeder extends Seeder
         if (count($pertandinganIds) >= 2) {
             $tandingMatches[] = [
                 'pertandingan_id' => $pertandinganIds[1],
-                'current_round' => 2,
-                'blue_total_score' => 6,
-                'red_total_score' => 6,
+                'current_round' => 1,
+                'blue_total_score' => 0,
+                'red_total_score' => 0,
                 'blue_disqualified' => false,
                 'red_disqualified' => false,
                 'match_status' => 'in_progress',

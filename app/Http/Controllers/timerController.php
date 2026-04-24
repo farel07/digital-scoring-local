@@ -62,13 +62,15 @@ class timerController extends Controller
         $roundName = $roundNames[$pertandingan->babak] ?? strtoupper(str_replace('_', ' ', $pertandingan->babak));
 
         return view('tanding.timer', [
-            'pertandingan' => $pertandingan,
-            'arena' => $arena,
-            'peserta1' => $peserta1,
-            'peserta2' => $peserta2,
-            'kelasInfo' => $kelasInfo,
-            'roundName' => $roundName,
-            'user' => $user
+            'pertandingan'       => $pertandingan,
+            'arena'              => $arena,
+            'peserta1'           => $peserta1,
+            'peserta2'           => $peserta2,
+            'kelasInfo'          => $kelasInfo,
+            'roundName'          => $roundName,
+            'user'               => $user,
+            'jenis_pertandingan' => $pertandingan->jenis_pertandingan ?? 'prestasi',
+            'max_ronde'          => $pertandingan->maxRonde(),
         ]);
     }
 

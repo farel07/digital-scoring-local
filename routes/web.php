@@ -22,9 +22,10 @@ use App\Http\Controllers\AuthController;
 |
 */
 
-Route::get('/', function () {
-    return view('welcome');
-});
+// Route::get('/', function () {
+//     return view('welcome');
+// });
+Route::get('/', [AuthController::class, 'showLoginForm'])->name('login');
 
 // Authentication Routes
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');

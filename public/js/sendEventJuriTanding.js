@@ -2,15 +2,18 @@
 
 const pertandinganId = document.querySelector('meta[name="pertandingan-id"]')?.getAttribute('content') || null;
 const juriId         = document.querySelector('meta[name="user-id"]')?.getAttribute('content') || null;
+const maxRonde       = parseInt(document.querySelector('meta[name="max-ronde"]')?.getAttribute('content') || '3', 10);
 
-// In-memory score log: { blue: { 1: ['1','2',...], 2: [], 3: [] }, red: {...} }
-let scoreLog = {
-    blue: { 1: [], 2: [], 3: [] },
-    red:  { 1: [], 2: [], 3: [] },
-};
+// In-memory score log: { blue: { 1: [], 2: [], ... }, red: {...} }
+let scoreLog = { blue: {}, red: {} };
+for (let r = 1; r <= maxRonde; r++) {
+    scoreLog.blue[r] = [];
+    scoreLog.red[r]  = [];
+}
 
 let currentRound = 1;
 var poin;
+
 
 // ── Map technique → digit display ────────────────────────────────────────────
 function techniqueToDigit(type) {
@@ -25,28 +28,47 @@ function renderRound(team, round) {
     inner.textContent = arr ? arr.join('') : '';
 }
 
-// ── Render semua 6 box ───────────────────────────────────────────────────────
+// ── Render semua box sesuai maxRonde ────────────────────────────────────────
 function renderAllRounds() {
     ['blue', 'red'].forEach(team => {
-        [1, 2, 3].forEach(r => renderRound(team, r));
+        for (let r = 1; r <= maxRonde; r++) renderRound(team, r);
     });
 }
 
 // ── Highlight round aktif ─────────────────────────────────────────────────────
+// 1) Score-log boxes (blue/red log scroll boxes)
+// 2) Round indicator boxes (I, II, III) di kolom tengah
 function highlightActiveRound(round) {
+    const active = Number(round);
+
+    // -- Score-log boxes (dim inactive rounds) --
     ['blue', 'red'].forEach(team => {
-        [1, 2, 3].forEach(r => {
+        for (let r = 1; r <= maxRonde; r++) {
             const box = document.getElementById(`score-log-${team}-${r}`);
-            if (!box) return;
-            if (r === Number(round)) {
-                box.style.border = team === 'blue' ? '3px solid #0d6efd' : '3px solid #dc3545';
-                box.style.opacity = '1';
+            if (!box) continue;
+            if (r === active) {
+                box.style.border   = team === 'blue' ? '3px solid #0d6efd' : '3px solid #dc3545';
+                box.style.opacity  = '1';
             } else {
-                box.style.border = '2px solid #ced4da';
-                box.style.opacity = '0.5';
+                box.style.border   = '2px solid #ced4da';
+                box.style.opacity  = '0.5';
             }
-        });
+        }
     });
+
+    // -- Round indicator boxes (I / II / III) di tengah --
+    for (let r = 1; r <= maxRonde; r++) {
+        const box = document.getElementById(`round-box-${r}`);
+        if (!box) continue;
+        if (r === active) {
+            box.classList.remove('bg-light');
+            box.classList.add('bg-warning', 'text-white');
+            box.style.transition = 'background-color 0.3s';
+        } else {
+            box.classList.remove('bg-warning', 'text-white');
+            box.classList.add('bg-light');
+        }
+    }
 }
 
 // ── Tambah digit ke round aktif (setelah button ditekan, langsung update UI) ──
@@ -79,10 +101,10 @@ async function loadScoreLog() {
 
         // Isi scoreLog dari data DB
         ['blue', 'red'].forEach(team => {
-            [1, 2, 3].forEach(r => {
+            for (let r = 1; r <= maxRonde; r++) {
                 const techniques = (data[team] && data[team][String(r)]) || [];
                 scoreLog[team][r] = techniques.map(t => techniqueToDigit(t));
-            });
+            }
         });
 
         renderAllRounds();

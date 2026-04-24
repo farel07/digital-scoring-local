@@ -73,9 +73,11 @@ class dewanController extends Controller
         }
 
         return view('tanding.dewan', [
-            'id' => $id,
-            'playerBlue'     => $pertandingan->players()->where('side_number', 1)->first(), // side_number 1 = Blue
-            'playerRed'      => $pertandingan->players()->where('side_number', 2)->first(), // side_number 2 = Red 
+            'id'                 => $id,
+            'jenis_pertandingan' => $pertandingan->jenis_pertandingan ?? 'prestasi',
+            'max_ronde'          => $pertandingan->maxRonde(),
+            'playerBlue'         => $pertandingan->players()->where('side_number', 1)->first(),
+            'playerRed'          => $pertandingan->players()->where('side_number', 2)->first(),
         ]);
     }
 
@@ -417,11 +419,16 @@ class dewanController extends Controller
     {
         $tandingMatch = TandingMatch::where('pertandingan_id', $pertandinganId)->first();
 
-        $emptyRound   = ['bina' => 0, 'teguran' => 0, 'peringatan' => 0, 'jatuhan' => 0];
-        $emptyResult  = [
-            'blue' => ['1' => $emptyRound, '2' => $emptyRound, '3' => $emptyRound],
-            'red'  => ['1' => $emptyRound, '2' => $emptyRound, '3' => $emptyRound],
-        ];
+        // Determine max rounds based on jenis_pertandingan
+        $pertandingan = Pertandingan::find($pertandinganId);
+        $maxRonde = $pertandingan ? $pertandingan->maxRonde() : 3;
+
+        $emptyRound  = ['bina' => 0, 'teguran' => 0, 'peringatan' => 0, 'jatuhan' => 0];
+        $emptyResult = ['blue' => [], 'red' => []];
+        for ($r = 1; $r <= $maxRonde; $r++) {
+            $emptyResult['blue'][(string)$r] = $emptyRound;
+            $emptyResult['red'][(string)$r]  = $emptyRound;
+        }
 
         if (!$tandingMatch) {
             return response()->json($emptyResult);
@@ -446,7 +453,7 @@ class dewanController extends Controller
                 $result[$team][$round][$type]++;
             } else {
                 // Peringatan: cumulative — add to current round AND all subsequent rounds
-                for ($r = (int)$round; $r <= 3; $r++) {
+                for ($r = (int)$round; $r <= $maxRonde; $r++) {
                     $result[$team][(string)$r][$type]++;
                 }
             }

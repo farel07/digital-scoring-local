@@ -26,7 +26,17 @@ class Pertandingan extends Model
         'arena_id',
         'next_match_id',
         'status',
+        'jenis_pertandingan',
     ];
+
+    /**
+     * Get the maximum number of rounds allowed.
+     * Pemasalan = 2 rounds, Prestasi = 3 rounds.
+     */
+    public function maxRonde(): int
+    {
+        return $this->jenis_pertandingan === 'pemasalan' ? 2 : 3;
+    }
 
     /**
      * Get the kelas that owns the pertandingan.
