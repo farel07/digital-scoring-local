@@ -3,319 +3,421 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aplikasi Scoring Pencak Silat</title>
+    <title>Juri - {{ $pertandingan->kelas->nama_kelas ?? 'Seni' }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <meta name="csrf-token" content="{{ csrf_token() }}">
-
+    <style>
+        .btn-scale:active { transform: scale(0.95); }
+        .player-btn-active-blue  { background:#2563eb; color:#fff; border-color:#1d4ed8; }
+        .player-btn-active-red   { background:#dc2626; color:#fff; border-color:#b91c1c; }
+        .player-btn-active-other { background:#7c3aed; color:#fff; border-color:#6d28d9; }
+        .score-selected { background:#22c55e !important; color:#fff !important; }
+    </style>
 </head>
-<body class="bg-gradient-to-br from-red-50 to-indigo-100 min-h-screen">
 
-    <input type="hidden" id="pertandingan_id" value="{{ $pertandingan->id ?? 1 }}">
-    <input type="hidden" id="user_id" value="{{ $user->id ?? 1 }}">
-    <input type="hidden" id="max_jurus" value="{{ $maxJurus ?? 14 }}">
-    <input type="hidden" id="match_type" value="{{ $matchType ?? 'tunggal' }}">
+@php
+    $jenis        = $jenisPertandingan ?? 'prestasi'; // prestasi | pemasalan
+    $isPrestasi   = $jenis === 'prestasi';
+    $sideColors   = [1 => 'blue', 2 => 'red'];       // warna untuk prestasi
+    $sideColor    = $sideColors[$currentSide] ?? 'purple';
+    $firstPlayer  = $currentSidePlayers->first();
+    $contingent   = $firstPlayer->player_contingent ?? '-';
+    $initials     = $firstPlayer ? strtoupper(substr($firstPlayer->player_name, 0, 2)) : 'P'.$currentSide;
+@endphp
 
-    <div class="container mx-auto p-4 max-w-7xl">
-        <!-- Header -->
-        <div class="bg-white rounded-xl shadow-md p-6 mb-6">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-4">
-                    @php
-                        $firstPlayer = $currentSidePlayers->first();
-                        $contingent = $firstPlayer->player_contingent ?? '-';
-                        $initials = $firstPlayer ? strtoupper(substr($firstPlayer->player_name, 0, 2)) : 'XX';
-                        $sideColor = $currentSide == 1 ? 'blue' : 'red';
-                    @endphp
-                    <div class="w-16 h-16 bg-gradient-to-br from-{{ $sideColor }}-500 to-{{ $sideColor }}-600 rounded-full flex items-center justify-center text-white font-bold text-xl">
+<body class="bg-gradient-to-br from-slate-100 to-slate-200 min-h-screen">
+
+    {{-- Hidden config --}}
+    <input type="hidden" id="pertandingan_id"   value="{{ $pertandingan->id ?? 1 }}">
+    <input type="hidden" id="user_id"           value="{{ $user->id ?? 1 }}">
+    <input type="hidden" id="max_jurus"         value="{{ $maxJurus ?? 14 }}">
+    <input type="hidden" id="match_type"        value="{{ $matchType ?? 'tunggal' }}">
+    <input type="hidden" id="jenis_pertandingan" value="{{ $jenis }}">
+    <input type="hidden" id="current_side_init" value="{{ $currentSide }}">
+
+    {{-- All players JSON for pemasalan --}}
+    <script>
+        const ALL_PLAYERS = @json(
+            ($allPlayers ?? collect())->map(fn($players, $side) =>
+                $players->map(fn($p) => ['name' => $p->player_name, 'contingent' => $p->player_contingent])->values()
+            )
+        );
+        const ALL_SIDES = @json(($allSides ?? collect())->values());
+    </script>
+
+    <div class="container mx-auto p-4 max-w-4xl">
+
+        {{-- ════ HEADER ════ --}}
+        <div class="bg-white rounded-2xl shadow-md p-5 mb-5">
+            <div class="flex items-center justify-between flex-wrap gap-3">
+
+                {{-- Avatar + info --}}
+                <div class="flex items-center gap-4">
+                    <div id="headerAvatar"
+                         class="w-14 h-14 bg-gradient-to-br from-{{ $sideColor }}-500 to-{{ $sideColor }}-600 rounded-full flex items-center justify-center text-white font-bold text-xl shadow">
                         {{ $initials }}
                     </div>
                     <div>
-                        <h2 class="text-xl font-bold text-gray-800">
+                        <div id="headerName" class="text-lg font-bold text-gray-800">
                             @foreach($currentSidePlayers as $player)
                                 {{ $player->player_name }}@if(!$loop->last), @endif
                             @endforeach
-                        </h2>
-                        <p class="text-gray-600">Kontingen {{ $contingent }} - Tim {{ $currentSide == 1 ? '🔵' : '🔴' }}</p>
+                        </div>
+                        <div id="headerContingent" class="text-sm text-gray-500">
+                            Kontingen {{ $contingent }}
+                            @if($isPrestasi)
+                                &mdash; Tim {{ $currentSide == 1 ? '🔵 Biru' : '🔴 Merah' }}
+                            @else
+                                &mdash; Peserta {{ $currentSide }}
+                            @endif
+                        </div>
                     </div>
                 </div>
-                <div class="flex items-center gap-4">
-                    <div class="text-right">
-                        <h1 class="text-2xl font-bold text-{{ $sideColor }}-600">{{ $pertandingan->kelas->nama_kelas ?? 'Kelas' }}</h1>
-                        <p class="text-gray-600">{{ ucfirst($matchType) }} - {{ $pertandingan->arena->arena_name ?? 'Arena' }}</p>
+
+                {{-- Kelas + arena --}}
+                <div class="text-right">
+                    <div class="text-lg font-bold text-{{ $sideColor }}-600">
+                        {{ $pertandingan->kelas->nama_kelas ?? 'Kelas' }}
                     </div>
-                    <!-- Switch Side Button -->
-                    <a href="?side={{ $opponentSide }}" 
-                       class="bg-{{ $currentSide == 1 ? 'red' : 'blue' }}-600 hover:bg-{{ $currentSide == 1 ? 'red' : 'blue' }}-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
-                        Ganti ke Tim {{ $opponentSide == 1 ? '🔵' : '🔴' }}
-                    </a>
+                    <div class="text-sm text-gray-500">
+                        {{ ucfirst($matchType) }} &bull; {{ $pertandingan->arena->arena_name ?? 'Arena' }}
+                        &bull; <span class="font-semibold {{ $isPrestasi ? 'text-blue-600' : 'text-purple-600' }}">
+                            {{ $isPrestasi ? 'Prestasi' : 'Pemasalan' }}
+                        </span>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Main Grid (3 columns) -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-            <!-- Wrong Move Card -->
-            <div class="bg-red-500 rounded-xl shadow-md p-8 flex flex-col items-center justify-center min-h-64">
-                <button id="wrongMoveBtn" class="text-white font-bold py-8 px-12 text-3xl transition-colors duration-200 w-full h-full">
-                    <div class="text-6xl mb-4">✗</div>
-                    Wrong Move
+        {{-- ════ PLAYER SELECTOR ════ --}}
+        @if($isPrestasi)
+        {{-- PRESTASI: Tombol ganti tim Biru ↔ Merah --}}
+        <div class="bg-white rounded-2xl shadow-md p-4 mb-5">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">Sedang menilai tim:</p>
+            <div class="flex gap-3">
+                <a href="?side=1"
+                   class="flex-1 py-3 rounded-xl font-bold text-center transition-all
+                          {{ $currentSide == 1 ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-gray-100 text-gray-600 hover:bg-blue-50' }}">
+                    🔵 Sudut Biru
+                </a>
+                <a href="?side=2"
+                   class="flex-1 py-3 rounded-xl font-bold text-center transition-all
+                          {{ $currentSide == 2 ? 'bg-red-600 text-white shadow-lg shadow-red-200' : 'bg-gray-100 text-gray-600 hover:bg-red-50' }}">
+                    🔴 Sudut Merah
+                </a>
+            </div>
+        </div>
+
+        @else
+        {{-- PEMASALAN: Selector dinamis sesuai jumlah peserta --}}
+        <div class="bg-white rounded-2xl shadow-md p-4 mb-5">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">
+                Pilih peserta yang sedang tampil:
+            </p>
+            <div class="flex flex-wrap gap-2" id="playerSelector">
+                @foreach(($allSides ?? []) as $sideNum)
+                @php
+                    $sidePlayers = ($allPlayers ?? collect())->get($sideNum, collect());
+                    $label = $sidePlayers->isNotEmpty()
+                        ? $sidePlayers->pluck('player_name')->implode(' / ')
+                        : 'Peserta '.$sideNum;
+                @endphp
+                <button type="button"
+                        data-side="{{ $sideNum }}"
+                        onclick="switchPlayer({{ $sideNum }})"
+                        class="player-selector-btn flex-1 min-w-[120px] py-3 px-4 rounded-xl border-2 font-semibold text-sm transition-all
+                               {{ $currentSide == $sideNum
+                                    ? 'bg-purple-600 text-white border-purple-700 shadow-lg shadow-purple-100'
+                                    : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-purple-50 hover:border-purple-300' }}">
+                    <div class="text-base">Peserta {{ $sideNum }}</div>
+                    <div class="text-xs opacity-80 truncate">{{ Str::limit($label, 28) }}</div>
+                </button>
+                @endforeach
+            </div>
+
+            {{-- Reset konfirmasi --}}
+            <div id="switchWarning" class="hidden mt-3 p-3 bg-amber-50 border border-amber-300 rounded-xl text-sm">
+                <p class="font-semibold text-amber-800 mb-2">⚠️ Ganti ke peserta <span id="switchTargetLabel"></span>?</p>
+                <p class="text-amber-700 text-xs mb-3">Skor yang sudah diinput untuk peserta saat ini akan tersimpan. Papan input akan direset ke Jurus 1.</p>
+                <div class="flex gap-2">
+                    <button onclick="confirmSwitch()" class="flex-1 bg-amber-600 text-white py-2 rounded-lg font-bold text-sm">Ya, Ganti</button>
+                    <button onclick="cancelSwitch()"  class="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg font-bold text-sm">Batal</button>
+                </div>
+            </div>
+        </div>
+        @endif
+
+        {{-- ════ SCORING GRID ════ --}}
+        <div class="grid grid-cols-3 gap-4 mb-5">
+
+            {{-- Wrong Move --}}
+            <div class="bg-red-500 rounded-2xl shadow-md p-6 flex items-center justify-center min-h-44">
+                <button id="wrongMoveBtn"
+                        class="btn-scale text-white font-bold text-center w-full h-full select-none">
+                    <div class="text-5xl mb-2">✗</div>
+                    <div class="text-xl">Wrong Move</div>
                 </button>
             </div>
 
-            <!-- Center Info Card -->
-            <div class="bg-white rounded-xl shadow-md p-6">
-                <div class="text-center mb-6">
-                    <h3 class="text-3xl font-bold text-red-600 mb-2">Jurus ke: <span id="currentMove">1</span></h3>
-                    <p class="text-xl text-red-500 font-semibold">Kesalahan: <span id="currentErrors">0</span> (Jurus ini)</p>
+            {{-- Center info --}}
+            <div class="bg-white rounded-2xl shadow-md p-5">
+                <div class="text-center mb-4">
+                    <div class="text-sm font-semibold text-gray-500 mb-1">Jurus ke</div>
+                    <div class="text-5xl font-black text-red-600" id="currentMove">1</div>
+                    <div class="text-sm text-red-400 mt-1">Kesalahan: <span id="currentErrors" class="font-bold">0</span></div>
                 </div>
-                
-                <div class="mb-4">
-                    <h4 class="text-lg font-semibold text-gray-700 mb-3">Kemantapan / Penghayatan / Stamina</h4>
-                    <div class="grid grid-cols-5 gap-2" id="scoreButtons">
-                        <!-- Score buttons will be generated by JavaScript -->
-                    </div>
+
+                <div class="mb-3">
+                    <h4 class="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
+                        Kemantapan / Penghayatan / Stamina
+                    </h4>
+                    <div class="grid grid-cols-5 gap-1" id="scoreButtons"></div>
                 </div>
-                
-                <div class="text-center">
-                    <p class="text-sm text-gray-600">Nilai Kategori: <span id="categoryScore" class="font-bold text-green-600">0.00</span></p>
+
+                <div class="text-center text-xs text-gray-500">
+                    Nilai Kategori: <span id="categoryScore" class="font-bold text-green-600 text-sm">0.00</span>
                 </div>
             </div>
 
-            <!-- Next Move Card -->
-            <div class="bg-green-500 rounded-xl shadow-md p-8 flex flex-col items-center justify-center min-h-64">
-                <button id="nextMoveBtn" class="text-white font-bold py-8 px-12 text-3xl transition-colors duration-200 w-full h-full">
-                    <div class="text-6xl mb-4">→</div>
-                    Next Move
+            {{-- Next Move --}}
+            <div class="bg-green-500 rounded-2xl shadow-md p-6 flex items-center justify-center min-h-44">
+                <button id="nextMoveBtn"
+                        class="btn-scale text-white font-bold text-center w-full h-full select-none">
+                    <div class="text-5xl mb-2">→</div>
+                    <div class="text-xl">Next Move</div>
                 </button>
             </div>
         </div>
 
-        <!-- Bottom Grid (2 columns) -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Total Errors Card -->
-            <div class="bg-white rounded-xl shadow-md p-6">
-                <h3 class="text-xl font-semibold text-gray-700 mb-4">Total Kesalahan</h3>
+        {{-- ════ BOTTOM INFO ════ --}}
+        <div class="grid grid-cols-2 gap-4">
+            <div class="bg-white rounded-2xl shadow-md p-5">
+                <h3 class="text-sm font-semibold text-gray-600 mb-3 uppercase tracking-wide">Total Kesalahan</h3>
                 <div class="text-center">
-                    <div class="text-5xl font-bold text-red-500" id="totalErrors">0</div>
-                    <p class="text-gray-600 mt-2">Kesalahan dari semua jurus</p>
+                    <div class="text-6xl font-black text-red-500" id="totalErrors">0</div>
+                    <p class="text-gray-500 text-xs mt-1">dari semua jurus</p>
                 </div>
             </div>
-
-            <!-- Final Score Card -->
-            <div class="bg-red-500 rounded-xl shadow-md p-6">
-                <h3 class="text-xl font-semibold text-white mb-4 text-center">TOTAL NILAI AKHIR</h3>
+            <div class="bg-gradient-to-br from-red-500 to-red-600 rounded-2xl shadow-md p-5">
+                <h3 class="text-sm font-semibold text-red-100 mb-3 uppercase tracking-wide text-center">Nilai Akhir</h3>
                 <div class="text-center">
-                    <div class="text-6xl font-bold text-white" id="finalScore">9.90</div>
-                    <p class="text-red-100 mt-2">Nilai Final</p>
+                    <div class="text-6xl font-black text-white" id="finalScore">9.90</div>
+                    <p class="text-red-200 text-xs mt-1">Nilai sementara</p>
                 </div>
             </div>
         </div>
-    </div>
+
+    </div>{{-- /container --}}
 
     <script>
-        // Game state
-        let currentMove = 1;
-        let moveErrors = {}; // Track errors per move
-        let totalCategoryScore = 0.00; // Category score (can be changed within moves 1-MAX_JURUS)
-        const penaltyPerError = 0.01;
-        const baseScore = 9.90;
-        
-        // Get dynamic values from controller
-        const MAX_JURUS = parseInt(document.getElementById('max_jurus').value);
-        const MATCH_TYPE = document.getElementById('match_type').value;
-        const PERTANDINGAN_ID = parseInt(document.getElementById('pertandingan_id').value);
-        const USER_ID = parseInt(document.getElementById('user_id').value);
-        const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        // ─── Config ───
+        const MAX_JURUS          = parseInt(document.getElementById('max_jurus').value);
+        const MATCH_TYPE         = document.getElementById('match_type').value;
+        const PERTANDINGAN_ID    = parseInt(document.getElementById('pertandingan_id').value);
+        const USER_ID            = parseInt(document.getElementById('user_id').value);
+        const JENIS_PERTANDINGAN = document.getElementById('jenis_pertandingan').value;
+        const CSRF_TOKEN         = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        const IS_PEMASALAN       = JENIS_PERTANDINGAN === 'pemasalan';
 
-        // Initialize first move
-        moveErrors[currentMove] = 0;
+        // currentSide: for prestasi = from URL; for pemasalan = tracked in JS state
+        let currentSide = parseInt(document.getElementById('current_side_init').value) || 1;
 
-        // DOM elements
-        const currentMoveEl = document.getElementById('currentMove');
-        const currentErrorsEl = document.getElementById('currentErrors');
-        const totalErrorsEl = document.getElementById('totalErrors');
-        const finalScoreEl = document.getElementById('finalScore');
-        const categoryScoreEl = document.getElementById('categoryScore');
-        const wrongMoveBtn = document.getElementById('wrongMoveBtn');
-        const nextMoveBtn = document.getElementById('nextMoveBtn');
-        const scoreButtonsContainer = document.getElementById('scoreButtons');
+        // Per-player state store (keyed by side number) — so switching player preserves state
+        const playerState = {};
+        function getState(side) {
+            if (!playerState[side]) {
+                playerState[side] = { currentMove: 1, moveErrors: { 1: 0 }, totalCategoryScore: 0 };
+            }
+            return playerState[side];
+        }
 
+        const BASE_SCORE      = 9.90;
+        const PENALTY_PER_ERR = 0.01;
 
-        // Generate score buttons (0.01 - 0.10)
-        function generateScoreButtons() {
-            scoreButtonsContainer.innerHTML = '';
-            
-            // Show buttons if we're within allowed jurus limit
-            if (currentMove <= MAX_JURUS) {
+        // ─── DOM refs ───
+        const currentMoveEl    = document.getElementById('currentMove');
+        const currentErrorsEl  = document.getElementById('currentErrors');
+        const totalErrorsEl    = document.getElementById('totalErrors');
+        const finalScoreEl     = document.getElementById('finalScore');
+        const categoryScoreEl  = document.getElementById('categoryScore');
+        const wrongMoveBtn     = document.getElementById('wrongMoveBtn');
+        const nextMoveBtn      = document.getElementById('nextMoveBtn');
+        const scoreBtnsEl      = document.getElementById('scoreButtons');
+
+        // ─── UI helpers ───
+        function getInitials(name) {
+            return name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
+        }
+
+        function updateHeaderUI(side) {
+            const players = ALL_PLAYERS[side] || [];
+            const avatar  = document.getElementById('headerAvatar');
+            const name    = document.getElementById('headerName');
+            const cont    = document.getElementById('headerContingent');
+
+            if (!IS_PEMASALAN) return; // For prestasi, header is static (server-rendered)
+
+            const nameStr = players.map(p => p.name).join(' / ') || 'Peserta ' + side;
+            const contingStr = players[0]?.contingent || '-';
+
+            name.textContent = nameStr;
+            cont.textContent = 'Kontingen ' + contingStr + ' — Peserta ' + side;
+            avatar.textContent = players[0] ? getInitials(players[0].name) : 'P' + side;
+        }
+
+        function updateSelectorUI(side) {
+            document.querySelectorAll('.player-selector-btn').forEach(btn => {
+                const s = parseInt(btn.dataset.side);
+                if (s === side) {
+                    btn.className = btn.className
+                        .replace(/bg-gray-100|text-gray-600|border-gray-200|hover:[^ ]+/g, '')
+                        .trim();
+                    btn.classList.add('bg-purple-600','text-white','border-purple-700','shadow-lg','shadow-purple-100');
+                } else {
+                    btn.classList.remove('bg-purple-600','text-white','border-purple-700','shadow-lg','shadow-purple-100');
+                    btn.classList.add('bg-gray-100','text-gray-600','border-gray-200');
+                }
+            });
+        }
+
+        // ─── Pemasalan: player switch ───
+        let pendingSwitch = null;
+
+        function switchPlayer(side) {
+            if (side === currentSide) return;
+            if (!IS_PEMASALAN) return;
+
+            // Show confirmation warning
+            pendingSwitch = side;
+            const players = ALL_PLAYERS[side] || [];
+            const label = players.map(p => p.name).join(' / ') || 'Peserta ' + side;
+            document.getElementById('switchTargetLabel').textContent = label + ' (Peserta ' + side + ')';
+            document.getElementById('switchWarning').classList.remove('hidden');
+        }
+
+        function confirmSwitch() {
+            if (pendingSwitch === null) return;
+            const newSide = pendingSwitch;
+            pendingSwitch = null;
+            document.getElementById('switchWarning').classList.add('hidden');
+
+            // Save current state (already in playerState[currentSide])
+            // Switch
+            currentSide = newSide;
+            updateHeaderUI(currentSide);
+            updateSelectorUI(currentSide);
+            renderFromState(getState(currentSide));
+        }
+
+        function cancelSwitch() {
+            pendingSwitch = null;
+            document.getElementById('switchWarning').classList.add('hidden');
+        }
+
+        // ─── Render from state ───
+        function renderFromState(state) {
+            currentMoveEl.textContent   = state.currentMove;
+            currentErrorsEl.textContent = state.moveErrors[state.currentMove] || 0;
+            const totalErr = Object.values(state.moveErrors).reduce((s, v) => s + v, 0);
+            totalErrorsEl.textContent   = totalErr;
+            finalScoreEl.textContent    = Math.max(0, BASE_SCORE - totalErr * PENALTY_PER_ERR + state.totalCategoryScore).toFixed(2);
+            categoryScoreEl.textContent = state.totalCategoryScore.toFixed(2);
+            generateScoreButtons(state);
+        }
+
+        // ─── Score buttons ───
+        function generateScoreButtons(state) {
+            scoreBtnsEl.innerHTML = '';
+            if (state.currentMove <= MAX_JURUS) {
                 for (let i = 1; i <= 10; i++) {
-                    const score = (i * 0.01).toFixed(2);
-                    const button = document.createElement('button');
-                    
-                    // Check if this score is currently selected
-                    if (totalCategoryScore === parseFloat(score)) {
-                        button.className = 'px-3 py-2 rounded-full text-sm font-medium transition-colors duration-200 bg-green-500 hover:bg-green-600 text-white';
-                    } else {
-                        button.className = 'px-3 py-2 rounded-full text-sm font-medium transition-colors duration-200 bg-gray-200 hover:bg-gray-300 text-gray-700';
-                    }
-                    
-                    button.textContent = score;
-                    button.onclick = () => selectScore(button, parseFloat(score));
-                    scoreButtonsContainer.appendChild(button);
+                    const score = parseFloat((i * 0.01).toFixed(2));
+                    const btn   = document.createElement('button');
+                    btn.className = 'px-2 py-2 rounded-full text-xs font-semibold transition-colors ' +
+                        (state.totalCategoryScore === score
+                            ? 'bg-green-500 text-white'
+                            : 'bg-gray-200 hover:bg-gray-300 text-gray-700');
+                    btn.textContent = score.toFixed(2);
+                    btn.onclick = () => selectScore(score);
+                    scoreBtnsEl.appendChild(btn);
                 }
             } else {
-                // Show disabled message for moves beyond MAX_JURUS
-                const message = document.createElement('div');
-                message.className = 'text-center text-gray-500 italic py-4';
-                message.textContent = `Nilai kategori hanya untuk jurus 1-${MAX_JURUS}`;
-                scoreButtonsContainer.appendChild(message);
+                const msg = document.createElement('div');
+                msg.className = 'text-xs text-gray-400 italic py-2 col-span-5 text-center';
+                msg.textContent = `Nilai kategori hanya untuk jurus 1–${MAX_JURUS}`;
+                scoreBtnsEl.appendChild(msg);
             }
         }
 
-        // Select score button
-        function selectScore(button, score) {
-            // Only allow selection if we're within allowed jurus
-            if (currentMove > MAX_JURUS) {
-                return;
-            }
-            
-            // Reset all buttons
-            const buttons = scoreButtonsContainer.querySelectorAll('button');
-            buttons.forEach(btn => {
-                btn.className = 'px-3 py-2 rounded-full text-sm font-medium transition-colors duration-200 bg-gray-200 hover:bg-gray-300 text-gray-700';
-            });
-            
-            // Highlight selected button
-            button.className = 'px-3 py-2 rounded-full text-sm font-medium transition-colors duration-200 bg-green-500 hover:bg-green-600 text-white';
-            
-            // Update category score
-            totalCategoryScore = score;
-            categoryScoreEl.textContent = score.toFixed(2);
-            
-            // Send to database
+        // ─── Score select ───
+        function selectScore(score) {
+            const state = getState(currentSide);
+            if (state.currentMove > MAX_JURUS) return;
+            state.totalCategoryScore = score;
             sendCategoryScore(score);
-            
-            updateDisplay();
+            renderFromState(state);
         }
 
-        // Calculate total errors
-        function getTotalErrors() {
-            return Object.values(moveErrors).reduce((sum, errors) => sum + errors, 0);
-        }
-
-        // Get side parameter from URL
-        function getUrlParameter(name) {
-            const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get(name) || '1'; // Default to side 1
-        }
-
-        const currentSide = getUrlParameter('side');
-
-
-
-        // Update displays
-        function updateDisplay() {
-            currentMoveEl.textContent = currentMove;
-            currentErrorsEl.textContent = moveErrors[currentMove] || 0;
-            
-            const totalErrors = getTotalErrors();
-            totalErrorsEl.textContent = totalErrors;
-            
-            const finalScore = Math.max(0, baseScore - (totalErrors * penaltyPerError) + totalCategoryScore);
-            finalScoreEl.textContent = finalScore.toFixed(2);
-        }
-
-        // Send error to database
-        function sendMoveError(jurusNumber) {
-            fetch('/seni/tunggal-regu/add-error', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': CSRF_TOKEN
-                },
-                body: JSON.stringify({
-                    pertandingan_id: PERTANDINGAN_ID,
-                    user_id: USER_ID,
-                    jurus_number: jurusNumber,
-                    side: currentSide  // Include side parameter
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    console.log('Error saved:', data.data);
-                } else {
-                    console.error('Failed to save error:', data);
-                }
-            })
-            .catch(error => console.error('Network error:', error));
-        }
-
-        // Send category score to database
-        function sendCategoryScore(score) {
-            fetch('/seni/tunggal-regu/set-category', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': CSRF_TOKEN
-                },
-                body: JSON.stringify({
-                    pertandingan_id: PERTANDINGAN_ID,
-                    user_id: USER_ID,
-                    score: score,
-                    current_jurus: currentMove,
-                    side: currentSide  // Include side parameter
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    console.log('Category score saved:', data.data);
-                } else {
-                    console.error('Failed to save category score:', data);
-                    alert(data.message || 'Gagal menyimpan category score');
-                }
-            })
-            .catch(error => console.error('Network error:', error));
-        }
-
-        // Wrong move button handler
+        // ─── Wrong move ───
         wrongMoveBtn.addEventListener('click', () => {
-            if (!moveErrors[currentMove]) {
-                moveErrors[currentMove] = 0;
-            }
-            moveErrors[currentMove]++;
-            
-            // Send to database
-            sendMoveError(currentMove);
-            
-            updateDisplay();
-                
-            // Add visual feedback
+            const state = getState(currentSide);
+            if (!state.moveErrors[state.currentMove]) state.moveErrors[state.currentMove] = 0;
+            state.moveErrors[state.currentMove]++;
+            sendMoveError(state.currentMove);
+            renderFromState(state);
             wrongMoveBtn.classList.add('scale-95');
             setTimeout(() => wrongMoveBtn.classList.remove('scale-95'), 150);
         });
 
-        // Next move button handler
+        // ─── Next move ───
         nextMoveBtn.addEventListener('click', () => {
-            currentMove++;
-            moveErrors[currentMove] = 0;
-            updateDisplay();
-            
-            // Regenerate score buttons (will show disabled if beyond move 14)
-            generateScoreButtons();
-            
-            // Keep showing the category score
-            categoryScoreEl.textContent = totalCategoryScore.toFixed(2);
-            
-            // Add visual feedback
+            const state = getState(currentSide);
+            state.currentMove++;
+            if (!state.moveErrors[state.currentMove]) state.moveErrors[state.currentMove] = 0;
+            renderFromState(state);
             nextMoveBtn.classList.add('scale-95');
             setTimeout(() => nextMoveBtn.classList.remove('scale-95'), 150);
         });
 
-        // Initialize
-        generateScoreButtons();
-        updateDisplay();
-    </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97ac9dcc870e4112',t:'MTc1NzE0NzU1My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
-</html>
+        // ─── API: send error ───
+        function sendMoveError(jurusNumber) {
+            fetch('/seni/tunggal-regu/add-error', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF_TOKEN },
+                body: JSON.stringify({
+                    pertandingan_id: PERTANDINGAN_ID,
+                    user_id:         USER_ID,
+                    jurus_number:    jurusNumber,
+                    side:            currentSide
+                })
+            })
+            .then(r => r.json())
+            .then(data => { if (data.status !== 'success') console.error('Error save failed:', data); })
+            .catch(e => console.error('Network error:', e));
+        }
 
+        // ─── API: send category ───
+        function sendCategoryScore(score) {
+            fetch('/seni/tunggal-regu/set-category', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF_TOKEN },
+                body: JSON.stringify({
+                    pertandingan_id: PERTANDINGAN_ID,
+                    user_id:         USER_ID,
+                    score:           score,
+                    current_jurus:   getState(currentSide).currentMove,
+                    side:            currentSide
+                })
+            })
+            .then(r => r.json())
+            .then(data => { if (data.status !== 'success') console.error('Category save failed:', data); })
+            .catch(e => console.error('Network error:', e));
+        }
+
+        // ─── Init ───
+        (function init() {
+            const initState = getState(currentSide);
+            renderFromState(initState);
+        })();
+    </script>
+</body>
+</html>

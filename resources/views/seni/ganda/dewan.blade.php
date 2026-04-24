@@ -6,30 +6,85 @@
     <title>Sistem Penilaian Penalti Pencak Silat</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
+
+@php
+    $jenis      = $jenisPertandingan ?? 'prestasi';
+    $isPrestasi = $jenis === 'prestasi';
+    $allSides   = $allSides ?? collect([1, 2]);
+    $allPlayers = $allPlayers ?? collect();
+@endphp
 <body class="bg-gray-50 min-h-screen p-5">
     <div class="max-w-6xl mx-auto bg-white shadow-lg">
         <!-- Header Atas -->
         <div class="bg-white border-b border-gray-200 px-6 py-4">
             <div class="flex justify-between items-start">
                 <div>
-                    <div class="text-blue-600 text-xs font-semibold uppercase tracking-wide">PELATIH</div>
-                    <div class="text-blue-700 font-semibold text-sm mt-1">RISKA HERMAWAN, RIRIN RINASIH</div>
+                    <div class="text-{{ $isPrestasi ? 'blue' : 'purple' }}-600 text-xs font-semibold uppercase tracking-wide">
+                        {{ $isPrestasi ? 'PANEL DEWAN' : 'PANEL DEWAN — PEMASALAN' }}
+                    </div>
+                    <div class="text-gray-700 font-semibold text-sm mt-1">
+                        {{ $pertandingan->kelas->nama_kelas ?? 'Seni Ganda' }}
+                        &bull; {{ $pertandingan->arena->arena_name ?? 'Arena' }}
+                    </div>
                 </div>
-                <div class="text-right">
-                    <div class="text-gray-700 font-semibold text-sm">Arena A, Match 1</div>
-                    <div class="text-gray-600 text-sm mt-1">GANDA</div>
+                <div id="sideIndicator" class="px-4 py-2 rounded-xl font-bold text-sm bg-blue-100 text-blue-800 border border-blue-200">
+                    Sudut Biru
                 </div>
             </div>
         </div>
 
         <!-- Side Toggle -->
-        <div class="flex justify-center my-4 space-x-4">
-            <button onclick="switchSide('1')" id="btnSide1" class="px-6 py-3 rounded-lg font-bold text-white bg-blue-600 shadow-md transform scale-105 ring-4 ring-blue-300 transition-all">
-                SUDUT BIRU
-            </button>
-            <button onclick="switchSide('2')" id="btnSide2" class="px-6 py-3 rounded-lg font-bold text-gray-500 bg-gray-200 hover:bg-gray-300 transition-all">
-                SUDUT MERAH
-            </button>
+        <div class="px-6 py-4">
+            <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">
+                {{ $isPrestasi ? 'Pilih sudut / tim:' : 'Pilih peserta yang sedang tampil:' }}
+            </p>
+
+            @if($isPrestasi)
+            <!-- Prestasi: 2 tombol Biru & Merah -->
+            <div class="flex gap-3">
+                <button onclick="switchSide('1')" id="btnSide1"
+                        class="flex-1 py-3 rounded-xl font-bold text-white bg-blue-600 shadow ring-4 ring-blue-200 transition-all">
+                    🔵 Sudut Biru
+                </button>
+                <button onclick="switchSide('2')" id="btnSide2"
+                        class="flex-1 py-3 rounded-xl font-bold text-gray-500 bg-gray-100 hover:bg-gray-200 transition-all">
+                    🔴 Sudut Merah
+                </button>
+            </div>
+
+            @else
+            <!-- Pemasalan: tombol dinamis per peserta -->
+            <div class="flex flex-wrap gap-2">
+                @foreach($allSides as $sideNum)
+                @php
+                    $sidePlayers = $allPlayers->get($sideNum, collect());
+                    $nameLabel   = $sidePlayers->isNotEmpty()
+                        ? Str::limit($sidePlayers->pluck('player_name')->implode(' / '), 30)
+                        : 'Peserta '.$sideNum;
+                @endphp
+                <button type="button"
+                        data-side="{{ $sideNum }}"
+                        onclick="switchSide('{{ $sideNum }}')"
+                        class="pemasalan-side-btn flex-1 min-w-[130px] py-3 px-3 rounded-xl border-2 font-semibold text-sm transition-all
+                               {{ $loop->first
+                                    ? 'bg-purple-600 text-white border-purple-700 shadow ring-4 ring-purple-100'
+                                    : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-purple-50 hover:border-purple-300' }}">
+                    <div class="font-bold">Peserta {{ $sideNum }}</div>
+                    <div class="text-xs opacity-75 truncate">{{ $nameLabel }}</div>
+                </button>
+                @endforeach
+            </div>
+
+            <!-- Konfirmasi ganti peserta -->
+            <div id="switchWarnDewan" class="hidden mt-3 p-3 bg-amber-50 border border-amber-300 rounded-xl text-sm">
+                <p class="font-semibold text-amber-800 mb-1">⚠️ Ganti ke <span id="switchTargetDewan"></span>?</p>
+                <p class="text-xs text-amber-700 mb-3">Penalti yang sudah diinput tersimpan. Tampilan akan berpindah ke peserta baru.</p>
+                <div class="flex gap-2">
+                    <button onclick="confirmSwitchDewan()" class="flex-1 bg-amber-600 text-white py-2 rounded-lg font-bold text-sm">Ya, Ganti</button>
+                    <button onclick="cancelSwitchDewan()"  class="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg font-bold text-sm">Batal</button>
+                </div>
+            </div>
+            @endif
         </div>
 
         <!-- Tabel Penalti -->
@@ -125,7 +180,15 @@
     </div>
 
     <script>
-        // State for both sides
+        const ALL_PLAYERS_GANDA = @json(
+            $allPlayers->map(fn($players, $side) =>
+                $players->map(fn($p) => ['name' => $p->player_name, 'contingent' => $p->player_contingent])->values()
+            )
+        );
+        const ALL_SIDES_GANDA = @json($allSides->values());
+        const IS_PEMASALAN    = {{ $isPrestasi ? 'false' : 'true' }};
+
+        // State for all sides — initialized dynamically
         const penaltyTypes = [
             { type: 'WAKTU', value: -0.50 },
             { type: 'KELUAR_GARIS', value: -0.50 },
@@ -135,42 +198,111 @@
             { type: 'BAJU_SENJATA_PATAH', value: -0.50 }
         ];
 
-        // Initialize state for side 1 and 2
+        // Initialize state dynamically for all sides
         function createInitialState() {
             return penaltyTypes.map(p => ({ ...p, stack: [] }));
         }
 
-        let appState = {
-            '1': createInitialState(),
-            '2': createInitialState()
-        };
+        const appState = {};
+        // Ensure at minimum side 1 and 2 always exist
+        appState['1'] = createInitialState();
+        appState['2'] = createInitialState();
+        // Add any additional sides from pemasalan
+        ALL_SIDES_GANDA.forEach(s => {
+            if (!appState[String(s)]) appState[String(s)] = createInitialState();
+        });
 
-        let currentSide = '1'; // Default Side
+        let currentSide  = String(ALL_SIDES_GANDA[0] ?? '1');
+        let pendingSwitch = null;
 
-        function getCategories() {
-            return appState[currentSide];
+        // Penalty color per side
+        function sideColor() {
+            if (!IS_PEMASALAN) return currentSide === '1' ? 'blue' : 'red';
+            return 'purple';
         }
 
         // Switch Side Function
         function switchSide(side) {
-            currentSide = side;
-            
-            // Update Buttons
-            const btn1 = document.getElementById('btnSide1');
-            const btn2 = document.getElementById('btnSide2');
-            
-            if (side === '1') {
-                btn1.className = "px-6 py-3 rounded-lg font-bold text-white bg-blue-600 shadow-md transform scale-105 ring-4 ring-blue-300 transition-all";
-                btn2.className = "px-6 py-3 rounded-lg font-bold text-gray-500 bg-gray-200 hover:bg-gray-300 transition-all";
-            } else {
-                btn1.className = "px-6 py-3 rounded-lg font-bold text-gray-500 bg-gray-200 hover:bg-gray-300 transition-all";
-                btn2.className = "px-6 py-3 rounded-lg font-bold text-white bg-red-600 shadow-md transform scale-105 ring-4 ring-red-300 transition-all";
+            side = String(side);
+            if (side === currentSide) return;
+
+            if (IS_PEMASALAN) {
+                pendingSwitch = side;
+                const players = ALL_PLAYERS_GANDA[side] || [];
+                const label   = players.map(p => p.name).join(' / ') || 'Peserta ' + side;
+                document.getElementById('switchTargetDewan').textContent = label + ' (Peserta ' + side + ')';
+                document.getElementById('switchWarnDewan').classList.remove('hidden');
+                return;
             }
 
-            // Update UI
+            doSwitch(side);
+        }
+
+        function confirmSwitchDewan() {
+            if (!pendingSwitch) return;
+            doSwitch(pendingSwitch);
+            pendingSwitch = null;
+            document.getElementById('switchWarnDewan').classList.add('hidden');
+        }
+
+        function cancelSwitchDewan() {
+            pendingSwitch = null;
+            document.getElementById('switchWarnDewan').classList.add('hidden');
+        }
+
+        function doSwitch(side) {
+            currentSide = side;
+            if (!appState[currentSide]) appState[currentSide] = createInitialState();
+            updateSideIndicator();
+            updateSelectorUI();
             updateAllRows();
             updateGrandTotal();
             fetchActivePenalties();
+        }
+
+        // Update top indicator badge
+        function updateSideIndicator() {
+            const el = document.getElementById('sideIndicator');
+            if (!IS_PEMASALAN) {
+                if (currentSide === '1') {
+                    el.textContent = 'Sudut Biru';
+                    el.className   = 'px-4 py-2 rounded-xl font-bold text-sm bg-blue-100 text-blue-800 border border-blue-200';
+                } else {
+                    el.textContent = 'Sudut Merah';
+                    el.className   = 'px-4 py-2 rounded-xl font-bold text-sm bg-red-100 text-red-800 border border-red-200';
+                }
+            } else {
+                const players = ALL_PLAYERS_GANDA[currentSide] || [];
+                const label   = players.map(p => p.name).join(' / ') || 'Peserta ' + currentSide;
+                el.textContent = 'Peserta ' + currentSide + ' — ' + label;
+                el.className   = 'px-4 py-2 rounded-xl font-bold text-sm bg-purple-100 text-purple-800 border border-purple-200';
+            }
+        }
+
+        // Update selector button highlights
+        function updateSelectorUI() {
+            if (!IS_PEMASALAN) {
+                const btn1 = document.getElementById('btnSide1');
+                const btn2 = document.getElementById('btnSide2');
+                if (btn1 && btn2) {
+                    if (currentSide === '1') {
+                        btn1.className = 'flex-1 py-3 rounded-xl font-bold text-white bg-blue-600 shadow ring-4 ring-blue-200 transition-all';
+                        btn2.className = 'flex-1 py-3 rounded-xl font-bold text-gray-500 bg-gray-100 hover:bg-gray-200 transition-all';
+                    } else {
+                        btn1.className = 'flex-1 py-3 rounded-xl font-bold text-gray-500 bg-gray-100 hover:bg-gray-200 transition-all';
+                        btn2.className = 'flex-1 py-3 rounded-xl font-bold text-white bg-red-600 shadow ring-4 ring-red-200 transition-all';
+                    }
+                }
+            } else {
+                document.querySelectorAll('.pemasalan-side-btn').forEach(btn => {
+                    const s = btn.dataset.side;
+                    if (s === currentSide) {
+                        btn.className = 'pemasalan-side-btn flex-1 min-w-[130px] py-3 px-3 rounded-xl border-2 font-semibold text-sm transition-all bg-purple-600 text-white border-purple-700 shadow ring-4 ring-purple-100';
+                    } else {
+                        btn.className = 'pemasalan-side-btn flex-1 min-w-[130px] py-3 px-3 rounded-xl border-2 font-semibold text-sm transition-all bg-gray-100 text-gray-600 border-gray-200 hover:bg-purple-50 hover:border-purple-300';
+                    }
+                });
+            }
         }
 
         // ---------------------------------------------------------
@@ -178,7 +310,7 @@
         // ---------------------------------------------------------
 
         function addNewPenalty(index) {
-            const categories = getCategories();
+            const categories = appState[currentSide];
             const category = categories[index];
             
             // 1. Buat ID unik untuk penalti spesifik ini
@@ -196,44 +328,35 @@
         }
 
         function removeLastPenalty(index) {
-            const categories = getCategories();
+            const categories = appState[currentSide];
             const category = categories[index];
             
-            // Cek apakah ada penalti untuk dihapus?
-            if (category.stack.length === 0) {
-                return; 
-            }
+            if (category.stack.length === 0) { return; }
 
-            // 1. Ambil ID terakhir (LIFO - Last In First Out)
             const idToRemove = category.stack.pop();
-
-            // 2. Update Tampilan Lokal
             updateRowUI(index);
             updateGrandTotal();
-
-            // 3. Kirim perintah hapus ke Server untuk ID spesifik tersebut
             sendPenalty(idToRemove, category.type, category.value, 'clear');
         }
 
         function updateAllRows() {
-            const categories = getCategories();
+            const categories = appState[currentSide];
             categories.forEach((_, index) => updateRowUI(index));
         }
 
         // Fungsi Update Baris Tabel (Visual)
         function updateRowUI(index) {
-            const categories = getCategories();
+            const categories = appState[currentSide];
             const category = categories[index];
             const count = category.stack.length;
             const currentTotal = count * category.value;
-            
+            const col = sideColor();
+
             const rowElement = document.getElementById(`row-${index}`);
             const totalCell = document.getElementById(`total-${index}`);
-            
-            // Tampilkan angka. Jika 0 tampilkan "0", jika tidak tampilkan decimal (misal -1.00)
+
             totalCell.textContent = count === 0 ? "0" : currentTotal.toFixed(2);
-            
-            // Styling jika ada penalti
+
             if (count > 0) {
                 rowElement.classList.add('bg-red-50');
                 totalCell.classList.add('text-red-600', 'font-bold');
@@ -247,7 +370,7 @@
 
         // Fungsi Hitung Total Keseluruhan
         function updateGrandTotal() {
-            const categories = getCategories();
+            const categories = appState[currentSide];
             let total = 0;
             categories.forEach(cat => {
                 total += (cat.stack.length * cat.value);
@@ -325,30 +448,26 @@
         }
 
         function syncStateWithServer(serverPenalties) {
-            // 1. Reset current side stack
-            const categories = getCategories();
-            categories.forEach(cat => {
-                cat.stack = [];
-            });
+            // Reset current side stack only
+            const categories = appState[currentSide];
+            if (categories) categories.forEach(cat => { cat.stack = []; });
 
-            // 2. Filter active penalties for current side
+            // Filter active penalties for current side
             const activePenalties = serverPenalties.filter(p => 
-                p.status === 'active' && (p.side == currentSide || !p.side)
+                p.status === 'active' && (String(p.side) === String(currentSide) || (!p.side && currentSide === '1'))
             );
 
-            // 3. Sort by timestamp ascending (Oldest first) so we push to stack in order
+            // Sort by timestamp ascending
             activePenalties.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
-            // 4. Populate stacks
+            // Populate stacks
             activePenalties.forEach(p => {
-                // Find matching category index
                 const catIndex = penaltyTypes.findIndex(pt => pt.type === p.type);
-                if (catIndex !== -1) {
-                    categories[catIndex].stack.push(p.penalty_id);
+                if (catIndex !== -1 && appState[currentSide]) {
+                    appState[currentSide][catIndex].stack.push(p.penalty_id);
                 }
             });
 
-            // 5. Update UI
             updateAllRows();
             updateGrandTotal();
         }
@@ -357,9 +476,11 @@
 
         // Inisialisasi
         document.addEventListener('DOMContentLoaded', function() {
+            updateSideIndicator();
             updateAllRows();
             updateGrandTotal();
-            fetchActivePenalties(); 
+            fetchActivePenalties();
+            setInterval(fetchActivePenalties, 5000);
         });
     </script>
 </body>

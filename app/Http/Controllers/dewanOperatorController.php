@@ -27,15 +27,20 @@ class dewanOperatorController extends Controller
             ], 404);
         }
 
-        // Get match_id from resolved pertandingan
-        $matchId = $pertandingan->id;
-
-        // Get jumlah juri from query parameter (default 4)
+        $matchId    = $pertandingan->id;
         $jumlahJuri = request()->query('jumlah', 4);
 
+        $jenisPertandingan = $pertandingan->jenis_pertandingan ?? 'prestasi';
+        $pertandingan->load('players');
+        $allPlayers = $pertandingan->players->groupBy('side_number');
+        $allSides   = $allPlayers->keys()->sort()->values();
+
         return view('seni.ganda.dewanOperator', [
-            'id' => $matchId,
-            'jumlahJuri' => $jumlahJuri
+            'id'                => $matchId,
+            'jumlahJuri'        => $jumlahJuri,
+            'jenisPertandingan' => $jenisPertandingan,
+            'allPlayers'        => $allPlayers,
+            'allSides'          => $allSides,
         ]);
     }
 
@@ -50,12 +55,45 @@ class dewanOperatorController extends Controller
             ], 404);
         }
 
-        $matchId = $pertandingan->id;
+        $matchId    = $pertandingan->id;
         $jumlahJuri = request()->query('jumlah', 4);
 
+        $jenisPertandingan = $pertandingan->jenis_pertandingan ?? 'prestasi';
+        $pertandingan->load('players');
+        $allPlayers = $pertandingan->players->groupBy('side_number');
+        $allSides   = $allPlayers->keys()->sort()->values();
+
         return view('seni.ganda.penonton', [
-            'id' => $matchId,
-            'jumlahJuri' => $jumlahJuri
+            'id'                => $matchId,
+            'jumlahJuri'        => $jumlahJuri,
+            'jenisPertandingan' => $jenisPertandingan,
+            'allPlayers'        => $allPlayers,
+            'allSides'          => $allSides,
+        ]);
+    }
+
+    /**
+     * Halaman hasil dual-panel Seni Ganda
+     * Menampilkan skor Sudut Biru vs Sudut Merah secara berdampingan
+     * dengan indikator pemenang otomatis
+     */
+    public function index_ganda_hasil($id)
+    {
+        $pertandingan = \App\Helpers\MatchResolver::getActiveMatchForUser($id);
+
+        if (!$pertandingan) {
+            return response()->view('errors.no-active-match', [
+                'message' => 'Tidak ada pertandingan yang sedang berlangsung di arena Anda.'
+            ], 404);
+        }
+
+        $matchId    = $pertandingan->id;
+        $jumlahJuri = request()->query('jumlah', 4);
+
+        return view('seni.ganda.hasil', [
+            'id'           => $matchId,
+            'pertandingan' => $pertandingan,
+            'jumlahJuri'   => $jumlahJuri,
         ]);
     }
 
@@ -79,6 +117,11 @@ class dewanOperatorController extends Controller
 
         $penaltyRules = \App\Models\PenaltyRule::where('category', 'tunggal_regu')->get();
 
+        $jenisPertandingan = $pertandingan->jenis_pertandingan ?? 'prestasi';
+        $pertandingan->load('players');
+        $allPlayers = $pertandingan->players->groupBy('side_number');
+        $allSides   = $allPlayers->keys()->sort()->values();
+
         return view('seni.tunggal_regu.dewanOperator', [
             'id' => $pertandingan->id,
             'user' => $user,
@@ -86,7 +129,10 @@ class dewanOperatorController extends Controller
             'jumlahJuri' => $jumlahJuri,
             'maxJurus' => $maxJurus,
             'matchType' => $matchType,
-            'penaltyRules' => $penaltyRules
+            'penaltyRules' => $penaltyRules,
+            'jenisPertandingan' => $jenisPertandingan,
+            'allPlayers' => $allPlayers,
+            'allSides' => $allSides
         ]);
     }
 
@@ -110,6 +156,11 @@ class dewanOperatorController extends Controller
 
         $penaltyRules = \App\Models\PenaltyRule::where('category', 'tunggal_regu')->get();
 
+        $jenisPertandingan = $pertandingan->jenis_pertandingan ?? 'prestasi';
+        $pertandingan->load('players');
+        $allPlayers = $pertandingan->players->groupBy('side_number');
+        $allSides   = $allPlayers->keys()->sort()->values();
+
         return view('seni.tunggal_regu.penonton', [
             'id' => $pertandingan->id,
             'user' => $user,
@@ -117,7 +168,44 @@ class dewanOperatorController extends Controller
             'jumlahJuri' => $jumlahJuri,
             'maxJurus' => $maxJurus,
             'matchType' => $matchType,
-            'penaltyRules' => $penaltyRules
+            'penaltyRules' => $penaltyRules,
+            'jenisPertandingan' => $jenisPertandingan,
+            'allPlayers' => $allPlayers,
+            'allSides' => $allSides
+        ]);
+    }
+
+    /**
+     * Halaman hasil dual-panel Seni Tunggal/Regu
+     * Menampilkan skor Sudut Biru vs Sudut Merah secara berdampingan
+     * dengan indikator pemenang otomatis
+     */
+    public function index_tunggal_regu_hasil($userId)
+    {
+        $pertandingan = MatchResolver::getActiveMatchForUser($userId);
+
+        if (!$pertandingan) {
+            return response()->view('errors.no-active-match', [
+                'message' => 'Tidak ada pertandingan yang sedang berlangsung di arena Anda.'
+            ], 404);
+        }
+
+        $user = User::find($userId);
+        $jumlahJuri = request()->query('jumlah', 4);
+
+        $matchType = $pertandingan->kelas->jenis_pertandingan;
+        $maxJurus  = $matchType === 'tunggal' ? 14 : 12;
+
+        $penaltyRules = \App\Models\PenaltyRule::where('category', 'tunggal_regu')->get();
+
+        return view('seni.tunggal_regu.hasil', [
+            'id'           => $pertandingan->id,
+            'user'         => $user,
+            'pertandingan' => $pertandingan,
+            'jumlahJuri'   => $jumlahJuri,
+            'maxJurus'     => $maxJurus,
+            'matchType'    => $matchType,
+            'penaltyRules' => $penaltyRules,
         ]);
     }
 }

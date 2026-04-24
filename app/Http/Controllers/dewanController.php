@@ -32,14 +32,25 @@ class dewanController extends Controller
             ], 404);
         }
 
-        $user = \App\Models\User::find($userId);
+        $user         = \App\Models\User::find($userId);
         $penaltyRules = \App\Models\PenaltyRule::where('category', 'tunggal_regu')->get();
 
+        // Jenis kompetisi: prestasi (2 tim) | pemasalan (N peserta)
+        $jenisPertandingan = $pertandingan->jenis_pertandingan ?? 'prestasi';
+
+        // All players grouped by side_number
+        $pertandingan->load('players');
+        $allPlayers = $pertandingan->players->groupBy('side_number');
+        $allSides   = $allPlayers->keys()->sort()->values();
+
         return view('seni.tunggal_regu.dewan', [
-            'id' => $pertandingan->id,
-            'user' => $user,
-            'pertandingan' => $pertandingan,
-            'penaltyRules' => $penaltyRules
+            'id'                => $pertandingan->id,
+            'user'              => $user,
+            'pertandingan'      => $pertandingan,
+            'penaltyRules'      => $penaltyRules,
+            'jenisPertandingan' => $jenisPertandingan,
+            'allPlayers'        => $allPlayers,
+            'allSides'          => $allSides,
         ]);
     }
 
@@ -72,12 +83,12 @@ class dewanController extends Controller
     {
         $validatedData = $request->validate([
             'pertandingan_id' => 'required|integer',
-            'penalty_id' => 'required|string',
-            'value' => 'required|numeric',
-            'side' => 'nullable|in:1,2'
+            'penalty_id'      => 'required|string',
+            'value'           => 'required|numeric',
+            'side'            => 'nullable|integer|min:1',  // pemasalan: bisa > 2
         ]);
 
-        $side = $validatedData['side'] ?? '1';
+        $side = (string) ($validatedData['side'] ?? '1');
         $validatedData['side'] = $side;
 
         // Persist penalty to database
@@ -240,10 +251,21 @@ class dewanController extends Controller
 
         $user = \App\Models\User::find($userId);
 
+        // Jenis kompetisi: prestasi (2 tim) | pemasalan (N peserta)
+        $jenisPertandingan = $pertandingan->jenis_pertandingan ?? 'prestasi';
+
+        // All players grouped by side_number
+        $pertandingan->load('players');
+        $allPlayers = $pertandingan->players->groupBy('side_number');
+        $allSides   = $allPlayers->keys()->sort()->values();
+
         return view('seni.ganda.dewan', [
-            'id' => $pertandingan->id,
-            'user' => $user,
-            'pertandingan' => $pertandingan
+            'id'                => $pertandingan->id,
+            'user'              => $user,
+            'pertandingan'      => $pertandingan,
+            'jenisPertandingan' => $jenisPertandingan,
+            'allPlayers'        => $allPlayers,
+            'allSides'          => $allSides,
         ]);
     }
 
@@ -251,11 +273,11 @@ class dewanController extends Controller
     {
         $validatedData = $request->validate([
             'pertandingan_id' => 'required|integer|exists:pertandingan,id',
-            'penalty_id' => 'required|string',
-            'type' => 'required|string',
-            'value' => 'required|numeric',
-            'action' => 'required|string|in:add,clear',
-            'side' => 'nullable|in:1,2'
+            'penalty_id'      => 'required|string',
+            'type'            => 'required|string',
+            'value'           => 'required|numeric',
+            'action'          => 'required|string|in:add,clear',
+            'side'            => 'nullable|integer|min:1',  // pemasalan: bisa > 2
         ]);
 
         try {

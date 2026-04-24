@@ -87,6 +87,9 @@ Route::get('/dewan-operator-seni-ganda/{id}', [dewanOperatorController::class, '
 // Route for spectators/viewers (penonton) - same pattern as dewanOperator
 Route::get('/penonton-seni-ganda/{id}', [dewanOperatorController::class, 'index_ganda_penonton']);
 
+// Route untuk halaman hasil dual-panel (Biru vs Merah) seni ganda
+Route::get('/hasil-seni-ganda/{id}', [dewanOperatorController::class, 'index_ganda_hasil'])->name('hasil.ganda');
+
 // API route for getting events (realtime simulation)
 Route::get('/api/seni/ganda/events/{matchId}', [App\Http\Controllers\SeniGandaApiController::class, 'getEvents']);
 
@@ -106,6 +109,9 @@ Route::get('/dewan-operator-seni-tunggal-regu/{id}', [dewanOperatorController::c
 
 // Route for spectators/viewers (penonton) tunggal-regu - same pattern as dewan operator
 Route::get('/penonton-seni-tunggal-regu/{id}', [dewanOperatorController::class, 'index_tunggal_regu_penonton']);
+
+// Route untuk halaman hasil dual-panel (Biru vs Merah) seni tunggal/regu
+Route::get('/hasil-seni-tunggal-regu/{user_id}', [dewanOperatorController::class, 'index_tunggal_regu_hasil'])->name('hasil.tunggal-regu');
 
 // Penalty submission for tunggal/regu
 Route::post('/dewan-seni-tunggal-regu/kirim-penalti', [dewanController::class, 'kirim_pelanggaran_seni_tunggal_regu']);

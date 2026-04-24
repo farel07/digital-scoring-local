@@ -39,30 +39,40 @@ class juriController extends Controller
 
         $user = \App\Models\User::find($userId);
 
-        // Determine max jurus based on match type
-        $maxJurus = $pertandingan->kelas->jenis_pertandingan === 'tunggal' ? 14 : 12;
+        // Determine max jurus based on kelas type
+        $matchType = $pertandingan->kelas->jenis_pertandingan;  // tunggal | regu
+        $maxJurus  = $matchType === 'tunggal' ? 14 : 12;
 
-        // Get side parameter from URL (default to 1)
-        $side = request()->get('side', 1);
+        // Jenis kompetisi: prestasi (2 tim) | pemasalan (N peserta)
+        $jenisPertandingan = $pertandingan->jenis_pertandingan ?? 'prestasi';
 
-        // Load players for this match
+        // Load all players for this match, grouped by side_number
         $pertandingan->load('players');
+        $allPlayers = $pertandingan->players->groupBy('side_number');
+        $allSides   = $allPlayers->keys()->sort()->values(); // [1, 2, ...]
+
+        // Get side parameter from URL (default to first side = 1)
+        $side = (int) request()->get('side', $allSides->first() ?? 1);
 
         // Get players for current side
-        $currentSidePlayers = $pertandingan->players->where('side_number', $side);
+        $currentSidePlayers = $allPlayers->get($side, collect());
 
-        // Get opponent side number
+        // For prestasi: opponent is always the other side (1↔2)
+        // For pemasalan: not used, but kept for backward compat
         $opponentSide = $side == 1 ? 2 : 1;
 
         return view('seni.tunggal_regu.juri', [
-            'id' => $pertandingan->id,
-            'user' => $user,
-            'pertandingan' => $pertandingan,
-            'maxJurus' => $maxJurus,
-            'matchType' => $pertandingan->kelas->jenis_pertandingan,
-            'currentSide' => $side,
+            'id'                 => $pertandingan->id,
+            'user'               => $user,
+            'pertandingan'       => $pertandingan,
+            'maxJurus'           => $maxJurus,
+            'matchType'          => $matchType,
+            'jenisPertandingan'  => $jenisPertandingan,
+            'currentSide'        => $side,
             'currentSidePlayers' => $currentSidePlayers,
-            'opponentSide' => $opponentSide
+            'opponentSide'       => $opponentSide,
+            'allPlayers'         => $allPlayers,   // semua player per side
+            'allSides'           => $allSides,      // list side_number [1, 2, ...]
         ]);
     }
 
@@ -70,9 +80,9 @@ class juriController extends Controller
     {
         $validated = $request->validate([
             'pertandingan_id' => 'required|integer|exists:pertandingan,id',
-            'user_id' => 'required|integer|exists:users,id',
-            'jurus_number' => 'required|integer|min:1',
-            'side' => 'nullable|in:1,2'
+            'user_id'         => 'required|integer|exists:users,id',
+            'jurus_number'    => 'required|integer|min:1',
+            'side'            => 'nullable|integer|min:1',  // pemasalan: bisa > 2
         ]);
 
         // Validate user has access to this match
@@ -106,10 +116,10 @@ class juriController extends Controller
     {
         $validated = $request->validate([
             'pertandingan_id' => 'required|integer|exists:pertandingan,id',
-            'user_id' => 'required|integer|exists:users,id',
-            'score' => 'required|numeric|min:0.01|max:0.10',
-            'current_jurus' => 'required|integer',
-            'side' => 'nullable|in:1,2'
+            'user_id'         => 'required|integer|exists:users,id',
+            'score'           => 'required|numeric|min:0.01|max:0.10',
+            'current_jurus'   => 'required|integer',
+            'side'            => 'nullable|integer|min:1',  // pemasalan: bisa > 2
         ]);
 
         // Validate user has access
@@ -342,16 +352,21 @@ class juriController extends Controller
 
         $user = \App\Models\User::find($userId);
 
-        // Get side parameter from URL (default to 1)
-        $side = request()->get('side', 1);
+        // Jenis kompetisi: prestasi (2 tim) | pemasalan (N peserta)
+        $jenisPertandingan = $pertandingan->jenis_pertandingan ?? 'prestasi';
 
-        // Load players for this match
+        // Load all players grouped by side_number
         $pertandingan->load('players');
+        $allPlayers = $pertandingan->players->groupBy('side_number');
+        $allSides   = $allPlayers->keys()->sort()->values(); // [1, 2, ...]
+
+        // Get side parameter from URL (default to first side)
+        $side = (int) request()->get('side', $allSides->first() ?? 1);
 
         // Get players for current side
-        $currentSidePlayers = $pertandingan->players->where('side_number', $side);
+        $currentSidePlayers = $allPlayers->get($side, collect());
 
-        // Get opponent side number
+        // Opponent side (prestasi only; for pemasalan not used)
         $opponentSide = $side == 1 ? 2 : 1;
 
         // Fetch existing score for this user, match, and side
@@ -361,25 +376,28 @@ class juriController extends Controller
             ->first();
 
         return view('seni.ganda.juri', [
-            'id' => $pertandingan->id,
-            'user' => $user,
-            'pertandingan' => $pertandingan,
-            'currentSide' => $side,
+            'id'                 => $pertandingan->id,
+            'user'               => $user,
+            'pertandingan'       => $pertandingan,
+            'jenisPertandingan'  => $jenisPertandingan,
+            'currentSide'        => $side,
             'currentSidePlayers' => $currentSidePlayers,
-            'opponentSide' => $opponentSide,
-            'existingScore' => $existingScore // Pass existing score
+            'opponentSide'       => $opponentSide,
+            'allPlayers'         => $allPlayers,
+            'allSides'           => $allSides,
+            'existingScore'      => $existingScore,
         ]);
     }
 
     public function kirim_poin_ganda(Request $request)
     {
         $validatedData = $request->validate([
-            'user_id' => 'required|integer|exists:users,id',
+            'user_id'         => 'required|integer|exists:users,id',
             'pertandingan_id' => 'required|integer|exists:pertandingan,id',
-            'teknik' => 'required|numeric|min:0|max:0.30',
-            'kekuatan' => 'required|numeric|min:0|max:0.30',
-            'penampilan' => 'required|numeric|min:0|max:0.30',
-            'side' => 'nullable|in:1,2'
+            'teknik'          => 'required|numeric|min:0|max:0.30',
+            'kekuatan'        => 'required|numeric|min:0|max:0.30',
+            'penampilan'      => 'required|numeric|min:0|max:0.30',
+            'side'            => 'nullable|integer|min:1',  // pemasalan: bisa > 2
         ]);
 
         try {
