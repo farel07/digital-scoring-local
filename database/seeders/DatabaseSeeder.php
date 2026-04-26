@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
         // Run seeders in order (due to foreign key constraints)
         $this->call([
             UserSeeder::class,
+            PenaltyRuleSeeder::class,
             ArenaSeeder::class,
             KelasSeeder::class,
             PertandinganSeeder::class,

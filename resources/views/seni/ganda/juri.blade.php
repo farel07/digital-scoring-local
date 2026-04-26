@@ -11,17 +11,27 @@
     </style>
     @include('components.auto-refresh')
 </head>
+
+@php
+    $jenis        = $jenisPertandingan ?? 'prestasi';
+    $isPrestasi   = $jenis === 'prestasi';
+    $sideColor    = $isPrestasi ? ($currentSide == 1 ? 'blue' : 'red') : 'purple';
+    $firstPlayer  = $currentSidePlayers->first();
+    $contingent   = $firstPlayer?->player_contingent ?? '-';
+@endphp
+
 <body class="bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen">
     <!-- Header -->
     <header class="bg-white border-b border-gray-200 p-4">
         <div class="flex justify-between items-center">
             <div class="flex-col items-center space-x-3">
-                @php
-                    $contingent = $currentSidePlayers->first()->player_contingent ?? '-';
-                    $sideColor = $currentSide == 1 ? 'blue' : 'red';
-                @endphp
                 <div class="text-{{ $sideColor }}-600 px-3 py-1 rounded font-bold">
-                    {{ strtoupper($contingent) }} - TIM {{ $currentSide == 1 ? '🔵' : '🔴' }}
+                    {{ strtoupper($contingent) }}
+                    @if($isPrestasi)
+                        - TIM {{ $currentSide == 1 ? '🔵 Biru' : '🔴 Merah' }}
+                    @else
+                        - Peserta {{ $currentSide }}
+                    @endif
                 </div>
                 <div class="flex items-start gap-3">
                     @foreach($currentSidePlayers as $player)
@@ -31,13 +41,39 @@
             </div>
             <div class="flex items-center gap-4">
                 <div class="text-gray-600 text-sm">Arena {{ $pertandingan->arena->arena_name ?? '-' }} - {{ $user->role }}</div>
-                <!-- Switch Side Button -->
+                @if($isPrestasi)
+                <!-- Prestasi: tombol ganti ke sudut lawan -->
                 <a href="?side={{ $opponentSide }}" 
                    class="bg-{{ $currentSide == 1 ? 'red' : 'blue' }}-600 hover:bg-{{ $currentSide == 1 ? 'red' : 'blue' }}-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
-                    Ganti ke Tim {{ $opponentSide == 1 ? '🔵' : '🔴' }}
+                    Ganti ke {{ $opponentSide == 1 ? '🔵 Sudut Biru' : '🔴 Sudut Merah' }}
                 </a>
+                @endif
             </div>
         </div>
+
+        @if(!$isPrestasi)
+        <!-- Pemasalan: selector per peserta -->
+        <div class="mt-3 border-t border-gray-200 pt-3">
+            <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Pilih Peserta:</p>
+            <div class="flex flex-wrap gap-2">
+                @foreach(($allSides ?? []) as $sideNum)
+                @php
+                    $sidePlayers = ($allPlayers ?? collect())->get($sideNum, collect());
+                    $label = $sidePlayers->isNotEmpty()
+                        ? $sidePlayers->first()->player_name
+                        : 'Peserta '.$sideNum;
+                @endphp
+                <a href="?side={{ $sideNum }}"
+                   class="px-3 py-2 rounded-lg font-semibold text-sm transition-all
+                          {{ $currentSide == $sideNum
+                               ? 'bg-purple-600 text-white shadow'
+                               : 'bg-gray-100 text-gray-600 hover:bg-purple-50 hover:text-purple-700' }}">
+                    Peserta {{ $sideNum }}: {{ Str::limit($label, 20) }}
+                </a>
+                @endforeach
+            </div>
+        </div>
+        @endif
     </header>
 
     <!-- Main Content -->

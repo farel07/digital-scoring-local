@@ -35,22 +35,34 @@
             </p>
             
             <!-- Side Monitor Toggle -->
-            <div class="flex justify-center mt-4 gap-4">
-                <button id="btnMonitorSide1" onclick="switchMonitoringSide('1')" 
-                    class="px-5 py-2 rounded-lg font-bold text-white transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 bg-blue-600 border-2 border-blue-700 text-sm">
-                    Monitor: Sudut Biru
-                </button>
-                <button id="btnMonitorSide2" onclick="switchMonitoringSide('2')" 
-                    class="px-5 py-2 rounded-lg font-bold text-gray-600 bg-gray-200 border-2 border-gray-300 transition-all duration-200 hover:bg-gray-300 text-sm">
-                    Monitor: Sudut Merah
-                </button>
+            <div class="flex justify-center mt-4 gap-3 flex-wrap">
+                @if(($jenisPertandingan ?? 'prestasi') === 'prestasi')
+                    <button id="btnMonitorSide_1" onclick="switchMonitoringSide('1')"
+                        class="monitor-btn px-5 py-2 rounded-lg font-bold text-white transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 bg-blue-600 border-2 border-blue-700 text-sm">
+                        Sudut Biru
+                    </button>
+                    <span id="monitoringSideIndicator" class="px-3 py-1 rounded-md bg-blue-100 text-blue-800 font-semibold text-xs self-center">
+                        Monitor: Sudut Biru
+                    </span>
+                    <button id="btnMonitorSide_2" onclick="switchMonitoringSide('2')"
+                        class="monitor-btn px-5 py-2 rounded-lg font-bold text-gray-600 bg-gray-200 border-2 border-gray-300 transition-all duration-200 hover:bg-gray-300 text-sm">
+                        Sudut Merah
+                    </button>
+                @else
+                    <button id="btnMonitorSide_{{ $allSides->first() ?? 1 }}" onclick="switchMonitoringSide('{{ $allSides->first() ?? 1 }}')" class="monitor-btn px-5 py-2 rounded-lg font-bold text-white transition-all duration-200 shadow-md hover:shadow-lg bg-purple-600 border-2 border-purple-700 text-sm">
+                        Peserta {{ $allSides->first() ?? 1 }}
+                    </button>
+                    <span id="monitoringSideIndicator" class="px-3 py-1 rounded-md bg-purple-100 text-purple-800 font-semibold text-xs self-center">
+                        Monitor: Peserta {{ $allSides->first() ?? 1 }}
+                    </span>
+                    @foreach($allSides as $sideNum)
+                        @if($loop->first) @continue @endif
+                        <button id="btnMonitorSide_{{ $sideNum }}" onclick="switchMonitoringSide('{{ $sideNum }}')" class="monitor-btn px-5 py-2 rounded-lg font-bold text-gray-600 bg-gray-200 border-2 border-gray-300 transition-all duration-200 hover:bg-gray-300 text-sm">
+                            Peserta {{ $sideNum }}
+                        </button>
+                    @endforeach
+                @endif
             </div>
-            <div class="text-center mt-2">
-                <span id="monitoringSideIndicator" class="px-3 py-1 rounded-md bg-blue-100 text-blue-800 font-semibold text-xs transition-colors">
-                    Monitor: Sudut Biru
-                </span>
-            </div>
-            </p>
         </div>
 
         <!-- Judge Panel Table -->
@@ -152,25 +164,35 @@
             return MATCH_ID;
         }
 
+        const IS_PEMASALAN = '{{ $jenisPertandingan ?? 'prestasi' }}' === 'pemasalan';
+
         // Switch Monitoring Side
         function switchMonitoringSide(side) {
-            monitoringSide = side;
-            
-            const btnSide1 = document.getElementById('btnMonitorSide1');
-            const btnSide2 = document.getElementById('btnMonitorSide2');
+            monitoringSide = side = String(side);
+
             const indicator = document.getElementById('monitoringSideIndicator');
-            
-            if (side === '1') {
-                btnSide1.className = 'px-5 py-2 rounded-lg font-bold text-white transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 bg-blue-600 border-2 border-blue-700 text-sm';
-                btnSide2.className = 'px-5 py-2 rounded-lg font-bold text-gray-600 bg-gray-200 border-2 border-gray-300 transition-all duration-200 hover:bg-gray-300 text-sm';
-                indicator.className = 'px-3 py-1 rounded-md bg-blue-100 text-blue-800 font-semibold text-xs';
+
+            // Update all monitor buttons generically
+            document.querySelectorAll('.monitor-btn').forEach(btn => {
+                const btnSide = btn.id.split('_')[1];
+                if (btnSide === side) {
+                    btn.className = 'monitor-btn px-5 py-2 rounded-lg font-bold text-white transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 border-2 text-sm ' +
+                        (IS_PEMASALAN ? 'bg-purple-600 border-purple-700' : (side === '1' ? 'bg-blue-600 border-blue-700' : 'bg-red-600 border-red-700'));
+                } else {
+                    btn.className = 'monitor-btn px-5 py-2 rounded-lg font-bold text-gray-600 bg-gray-200 border-2 border-gray-300 transition-all duration-200 hover:bg-gray-300 text-sm';
+                }
+            });
+
+            // Update indicator text & color
+            if (IS_PEMASALAN) {
+                indicator.textContent = 'Monitor: Peserta ' + side;
+                indicator.className = 'px-3 py-1 rounded-md bg-purple-100 text-purple-800 font-semibold text-xs transition-colors self-center';
+            } else if (side === '1') {
                 indicator.textContent = 'Monitor: Sudut Biru';
-                indicator.className = 'px-3 py-1 rounded-md bg-blue-100 text-blue-800 font-semibold text-xs transition-colors';
+                indicator.className = 'px-3 py-1 rounded-md bg-blue-100 text-blue-800 font-semibold text-xs transition-colors self-center';
             } else {
-                btnSide1.className = 'px-5 py-2 rounded-lg font-bold text-gray-600 bg-gray-200 border-2 border-gray-300 transition-all duration-200 hover:bg-gray-300 text-sm';
-                btnSide2.className = 'px-5 py-2 rounded-lg font-bold text-white transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 bg-red-600 border-2 border-red-700 text-sm';
-                indicator.className = 'px-3 py-1 rounded-md bg-red-100 text-red-800 font-semibold text-xs transition-colors';
                 indicator.textContent = 'Monitor: Sudut Merah';
+                indicator.className = 'px-3 py-1 rounded-md bg-red-100 text-red-800 font-semibold text-xs transition-colors self-center';
             }
 
             // Re-render with new side
