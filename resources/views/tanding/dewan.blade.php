@@ -288,8 +288,8 @@
                 </div>
                 <div class="col-md-4 text-center my-3 my-md-0">
                     <div class="match-info">
-                        <p class="m-0 text-dark">PARTAI 2</p>
-                        <p class="m-0 text-dark">ARENA 1</p>
+                        <p class="m-0 text-dark fw-bold">PARTAI {{ $pertandingan->partai ?? '-' }}</p>
+                        <p class="m-0 text-dark fw-bold text-uppercase">{{ $pertandingan->arena->arena_name ?? 'ARENA -' }}</p>
                         <span class="badge {{ $jenis_pertandingan === 'pemasalan' ? 'bg-warning text-dark' : 'bg-success' }} mt-1">
                             {{ strtoupper($jenis_pertandingan) }}
                         </span>

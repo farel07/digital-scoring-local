@@ -26,6 +26,7 @@ use App\Http\Controllers\AuthController;
 //     return view('welcome');
 // });
 Route::get('/', [AuthController::class, 'showLoginForm'])->name('login');
+Route::get('/api/active-match-url', [AuthController::class, 'getActiveMatchUrl']);
 
 // Authentication Routes
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
@@ -53,8 +54,9 @@ Route::get('/penilaian/{id}', [penilaianController::class, 'index']);
 Route::get('/dewan-operator/{id}', [dewanOperatorController::class, 'index']);
 Route::post('/dewan/kirim-penalti', [dewanController::class, 'kirim_pelanggaran_seni_tunggal_regu']);
 
-// Route untuk halaman operator statis (read-only schedule view)
-Route::get('/operator-static/{user_id?}', [OperatorController::class, 'index'])->name('operator-static');
+// Route untuk halaman operator dashboard
+Route::get('/operator/dashboard', [OperatorController::class, 'index'])->name('operator.dashboard');
+Route::post('/operator/update-status', [OperatorController::class, 'updateStatus'])->name('operator.updateStatus');
 
 // route tanding
 Route::get('/dewan-tanding/{id}', [dewanController::class, 'tanding_index']);

@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
+    @include('components.auto-refresh')
 </head>
 <body class="bg-gradient-to-br from-red-50 to-indigo-100 min-h-screen">
 

@@ -18,10 +18,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     @yield('styles')
     @yield('head')
-    
-    {{-- Load Vite assets for Echo/Pusher initialization --}}
-    @vite(['resources/js/app.js', 'resources/css/app.css'])
-
+    @include('components.auto-refresh')
 </head>
 
 <body>

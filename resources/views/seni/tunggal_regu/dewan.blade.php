@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     {{-- PENTING: Tambahkan CSRF Token untuk keamanan --}}
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    @include('components.auto-refresh')
 </head>
 <body class="bg-gray-50 min-h-screen p-5">
 

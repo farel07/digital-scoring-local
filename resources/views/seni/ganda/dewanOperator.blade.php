@@ -15,6 +15,7 @@
             animation: flashYellow 1.5s ease-in-out;
         }
     </style>
+    @include('components.auto-refresh')
 </head>
 <body class="bg-gray-100 min-h-screen overflow-hidden">
     <div class="w-full h-screen p-4 overflow-y-auto">

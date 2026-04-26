@@ -63,6 +63,7 @@ class dewanController extends Controller
 
         return view('tanding.dewan', [
             'id'                 => $id,
+            'pertandingan'       => $pertandingan,
             'jenis_pertandingan' => $pertandingan->jenis_pertandingan ?? 'prestasi',
             'max_ronde'          => $pertandingan->maxRonde(),
             'playerBlue'         => $pertandingan->players()->where('side_number', 1)->first(),

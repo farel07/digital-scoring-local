@@ -14,17 +14,17 @@ class ArenaSeeder extends Seeder
     {
         $arenas = [
             [
-                'arena_name' => 'Arena A',
+                'arena_name' => 'Arena 1',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
-                'arena_name' => 'Arena B',
+                'arena_name' => 'Arena 2',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
-                'arena_name' => 'Arena C',
+                'arena_name' => 'Arena 3',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],

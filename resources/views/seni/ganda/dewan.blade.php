@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistem Penilaian Penalti Pencak Silat</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    @include('components.auto-refresh')
 </head>
 <body class="bg-gray-50 min-h-screen p-5">
     <div class="max-w-6xl mx-auto bg-white shadow-lg">

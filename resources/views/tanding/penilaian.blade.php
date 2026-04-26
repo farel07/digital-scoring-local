@@ -160,8 +160,9 @@
                     <p class="text-start m-0">{{ $playerBlue->player_contingent ?? 'Kontingen Biru' }}</p>
                     <h5 class="text-primary">{{ $playerBlue->player_name ?? 'Pemain Biru' }}</h5>
                 </div>
-                <div class="m-2">
-                    <div class="px-3 pt-2 pt-md-5 text-dark text-center" style="border-radius: 10px">
+                <div class="m-2 text-center">
+                    <p class="m-0 fw-bold text-uppercase" style="font-size: 1.2rem;">PARTAI {{ $pertandingan->partai ?? '-' }} | {{ $pertandingan->arena->arena_name ?? 'ARENA -' }}</p>
+                    <div class="px-3 pt-1 pt-md-3 text-dark text-center" style="border-radius: 10px">
                         <span class="text-bold libertinus-font responsive-timer" id="timer">02:00</span>
                     </div>
                 </div>

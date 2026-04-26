@@ -49,9 +49,9 @@
                     <p class="text-start m-0">{{ $playerBlue->player_contingent }}</p>
                     <h5 class="text-primary">{{ $playerBlue->player_name }}</h5>
                 </div>
-                <div class="m-2">
-                    <p class="m-0 fw-bold">PARTAI 2</p>
-                    <p class="m-0 fw-bold">ARENA 1</p>
+                <div class="m-2 text-center">
+                    <p class="m-0 fw-bold">PARTAI {{ $pertandingan->partai ?? '-' }}</p>
+                    <p class="m-0 fw-bold text-uppercase">{{ $pertandingan->arena->arena_name ?? 'ARENA -' }}</p>
                     <span class="badge {{ ($jenis_pertandingan ?? 'prestasi') === 'pemasalan' ? 'bg-warning text-dark' : 'bg-success' }} mt-1">
                         {{ strtoupper($jenis_pertandingan ?? 'prestasi') }}
                     </span>
