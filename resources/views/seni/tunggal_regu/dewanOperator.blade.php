@@ -13,6 +13,7 @@
             transition: background-color 0.2s ease-in-out;
         }
     </style>
+    @include('components.auto-refresh')
 </head>
 <body class="bg-gray-50 min-h-screen p-2">
     

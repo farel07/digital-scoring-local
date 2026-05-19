@@ -175,7 +175,7 @@ class TandingPertandinganSeeder extends Seeder
         if (!$kelasTanding) {
             DB::table('kelas')->insert([
                 'nama_kelas' => 'A = 30kg - 40kg',
-                'jenis_pertandingan' => 'Tanding',
+                'jenis_pertandingan' => 'tanding',
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);

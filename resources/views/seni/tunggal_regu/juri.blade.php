@@ -7,6 +7,10 @@
     @vite(['resources/js/app.js'])
     <script src="https://cdn.tailwindcss.com"></script>
     <meta name="csrf-token" content="{{ csrf_token() }}">
+<<<<<<< HEAD
+
+    @include('components.auto-refresh')
+=======
     <style>
         .btn-scale:active { transform: scale(0.95); }
         .player-btn-active-blue  { background:#2563eb; color:#fff; border-color:#1d4ed8; }
@@ -14,6 +18,7 @@
         .player-btn-active-other { background:#7c3aed; color:#fff; border-color:#6d28d9; }
         .score-selected { background:#22c55e !important; color:#fff !important; }
     </style>
+>>>>>>> b365bb7ec0b42f23b672d46119467ab386024779
 </head>
 
 @php

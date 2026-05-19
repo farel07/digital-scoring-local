@@ -58,6 +58,11 @@ class AuthController extends Controller
      */
     private function getRedirectUrl($user)
     {
+        // Route for Operator role immediately
+        if ($user->role === 'operator') {
+            return '/operator/dashboard';
+        }
+
         // Get user's arenas
         $arenaIds = $user->arenas()->pluck('arena.id');
 
@@ -176,5 +181,20 @@ class AuthController extends Controller
         $request->session()->regenerateToken();
 
         return redirect('/login')->with('success', 'Berhasil logout.');
+    }
+
+    /**
+     * Get active match redirect URL
+     */
+    public function getActiveMatchUrl()
+    {
+        if (!Auth::check()) {
+            return response()->json(['url' => '/login']);
+        }
+
+        $user = Auth::user();
+        $redirectUrl = $this->getRedirectUrl($user);
+
+        return response()->json(['url' => $redirectUrl]);
     }
 }

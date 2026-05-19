@@ -6,12 +6,16 @@
     <title>Dewan - {{ $pertandingan->kelas->nama_kelas ?? 'Seni' }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <meta name="csrf-token" content="{{ csrf_token() }}">
+<<<<<<< HEAD
+    @include('components.auto-refresh')
+=======
     <style>
         .row-active-blue { background:#eff6ff; }
         .row-active-red  { background:#fef2f2; }
         .row-active-other{ background:#f5f3ff; }
         .btn-scale:active { transform: scale(0.95); }
     </style>
+>>>>>>> b365bb7ec0b42f23b672d46119467ab386024779
 </head>
 
 @php
