@@ -129,7 +129,15 @@
                         $merah = $match->players->where('side_number', 2)->first();
                     @endphp
                     <tr>
-                        <td class="fw-bold">{{ $match->id }}</td>
+                        <td class="fw-bold">
+                            @if($match->nomor_partai !== null)
+                                <span class="badge bg-primary fs-6">Partai {{ $match->nomor_partai }}</span>
+                                <br><small class="text-muted">ID #{{ $match->id }}</small>
+                            @else
+                                <span class="text-muted">#{{ $match->id }}</span>
+                                <br><small class="badge bg-warning text-dark">Belum ada partai</small>
+                            @endif
+                        </td>
                         <td>{{ $match->kelas->nama_kelas ?? '-' }}</td>
                         <td class="text-primary fw-bold">{{ $biru ? $biru->player_name : '-' }} <br> <small class="text-muted">{{ $biru ? $biru->player_contingent : '' }}</small></td>
                         <td class="text-danger fw-bold">{{ $merah ? $merah->player_name : '-' }} <br> <small class="text-muted">{{ $merah ? $merah->player_contingent : '' }}</small></td>

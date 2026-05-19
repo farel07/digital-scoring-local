@@ -153,7 +153,7 @@
                 <table class="data-table" id="matchTable">
                     <thead>
                         <tr>
-                            <th>ID</th>
+                            <th>Partai / ID</th>
                             <th>Kelas</th>
                             <th>Players & Contingent</th>
                             <th>Arena</th>
@@ -831,9 +831,13 @@
                     
                     const playerText = team1Text + ' <strong>vs</strong> ' + team2Text;
                     
+                    const partaiText = (match.nomor_partai !== null && match.nomor_partai !== undefined)
+                        ? `<span class="badge badge-info">Partai ${match.nomor_partai}</span><br><small style="color:#718096">ID #${match.id}</small>` 
+                        : `<span style="color:#718096">#${match.id}</span><br><small class="badge badge-warning">Belum ada partai</small>`;
+                    
                     return `
                         <tr data-status="${match.status}" data-arena="${match.arena_id}">
-                            <td data-label="ID">${match.id}</td>
+                            <td data-label="Partai / ID">${partaiText}</td>
                             <td data-label="Kelas">${match.kelas ? match.kelas.nama_kelas : '-'}</td>
                             <td data-label="Players & Contingent">${playerText}</td>
                             <td data-label="Arena">${match.arena ? match.arena.arena_name : '-'}</td>
@@ -872,8 +876,8 @@
                 content.innerHTML = `
                     <div class="detail-section">
                         <div class="detail-row">
-                            <span class="detail-label">ID Pertandingan:</span>
-                            <span class="detail-value">${match.id}</span>
+                            <span class="detail-label">Partai / ID:</span>
+                            <span class="detail-value">${match.nomor_partai ? 'Partai ' + match.nomor_partai + ' (ID: ' + match.id + ')' : '#' + match.id + ' (Belum ada partai)'}</span>
                         </div>
                         <div class="detail-row">
                             <span class="detail-label">Kelas:</span>

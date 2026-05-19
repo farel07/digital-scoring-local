@@ -25,9 +25,21 @@ class Pertandingan extends Model
         'kelas_id',
         'arena_id',
         'next_match_id',
+        'nomor_partai',
         'status',
         'jenis_pertandingan',
     ];
+
+    /**
+     * Get the partai label for display.
+     * Returns "Partai X" if nomor_partai is set, otherwise returns "#ID"
+     */
+    public function getLabelPartaiAttribute(): string
+    {
+        return $this->nomor_partai !== null
+            ? 'Partai ' . $this->nomor_partai
+            : '#' . $this->id;
+    }
 
     /**
      * Get the maximum number of rounds allowed.
