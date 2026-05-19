@@ -35,12 +35,15 @@ class dewanOperatorController extends Controller
         $allPlayers = $pertandingan->players->groupBy('side_number');
         $allSides   = $allPlayers->keys()->sort()->values();
 
+        $cachedSide = \Illuminate\Support\Facades\Cache::get("active_side_seni_ganda_{$pertandingan->id}") ?? ($allSides->first() ?? 1);
+
         return view('seni.ganda.dewanOperator', [
             'id'                => $matchId,
             'jumlahJuri'        => $jumlahJuri,
             'jenisPertandingan' => $jenisPertandingan,
             'allPlayers'        => $allPlayers,
             'allSides'          => $allSides,
+            'cachedSide'        => $cachedSide,
         ]);
     }
 
@@ -63,12 +66,15 @@ class dewanOperatorController extends Controller
         $allPlayers = $pertandingan->players->groupBy('side_number');
         $allSides   = $allPlayers->keys()->sort()->values();
 
+        $cachedSide = \Illuminate\Support\Facades\Cache::get("active_side_seni_ganda_{$pertandingan->id}") ?? ($allSides->first() ?? 1);
+
         return view('seni.ganda.penonton', [
             'id'                => $matchId,
             'jumlahJuri'        => $jumlahJuri,
             'jenisPertandingan' => $jenisPertandingan,
             'allPlayers'        => $allPlayers,
             'allSides'          => $allSides,
+            'cachedSide'        => $cachedSide,
         ]);
     }
 
@@ -122,6 +128,8 @@ class dewanOperatorController extends Controller
         $allPlayers = $pertandingan->players->groupBy('side_number');
         $allSides   = $allPlayers->keys()->sort()->values();
 
+        $cachedSide = \Illuminate\Support\Facades\Cache::get("active_side_seni_tunggal_{$pertandingan->id}") ?? ($allSides->first() ?? 1);
+
         return view('seni.tunggal_regu.dewanOperator', [
             'id' => $pertandingan->id,
             'user' => $user,
@@ -132,7 +140,8 @@ class dewanOperatorController extends Controller
             'penaltyRules' => $penaltyRules,
             'jenisPertandingan' => $jenisPertandingan,
             'allPlayers' => $allPlayers,
-            'allSides' => $allSides
+            'allSides' => $allSides,
+            'cachedSide' => $cachedSide
         ]);
     }
 
@@ -161,6 +170,8 @@ class dewanOperatorController extends Controller
         $allPlayers = $pertandingan->players->groupBy('side_number');
         $allSides   = $allPlayers->keys()->sort()->values();
 
+        $cachedSide = \Illuminate\Support\Facades\Cache::get("active_side_seni_tunggal_{$pertandingan->id}") ?? ($allSides->first() ?? 1);
+
         return view('seni.tunggal_regu.penonton', [
             'id' => $pertandingan->id,
             'user' => $user,
@@ -171,7 +182,8 @@ class dewanOperatorController extends Controller
             'penaltyRules' => $penaltyRules,
             'jenisPertandingan' => $jenisPertandingan,
             'allPlayers' => $allPlayers,
-            'allSides' => $allSides
+            'allSides' => $allSides,
+            'cachedSide' => $cachedSide
         ]);
     }
 

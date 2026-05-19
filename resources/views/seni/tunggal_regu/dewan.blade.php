@@ -169,7 +169,7 @@
         const matchState = {};
         ALL_SIDES_DEWAN.forEach(s => matchState[String(s)] = {});
 
-        let currentSide  = String(ALL_SIDES_DEWAN[0] ?? '1');
+        let currentSide  = String({{ $cachedSide ?? 1 }});
         let pendingSwitch = null;
 
         // ─── Side switcher (prestasi: nama warna; pemasalan: nomor peserta) ───
@@ -202,11 +202,22 @@
         }
 
         function doSwitch(side) {
+            // Optimistically update UI
             currentSide = side;
             updateSelectorUI();
             updateSideIndicator();
             render();
             fetchMatchData(); // sync from server
+
+            // Notify server so others can sync
+            fetch('/dewan-seni-tunggal-regu/switch-side', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF_TOKEN },
+                body: JSON.stringify({
+                    pertandingan_id: PERTANDINGAN_ID,
+                    side: side
+                })
+            }).catch(e => console.error('Failed to broadcast side switch', e));
         }
 
         // ─── Update top indicator badge ───

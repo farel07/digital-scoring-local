@@ -29,30 +29,13 @@
                     <!-- Side Monitoring Toggle -->
                     <div class="mt-2 flex items-center justify-center gap-2 flex-wrap">
                         @if(($jenisPertandingan ?? 'prestasi') === 'prestasi')
-                            <button id="btnMonitorSide_1" onclick="switchMonitoringSide('1')" 
-                                    class="monitor-btn px-4 py-2 rounded-lg font-bold text-white transition-all duration-200 shadow hover:shadow-lg bg-blue-600 border-2 border-blue-700 text-sm">
-                                Sudut Biru
-                            </button>
                             <span id="monitoringSideIndicator" class="px-3 py-1 rounded-md bg-blue-100 text-blue-800 font-semibold text-xs whitespace-nowrap">
                                 Monitor: Sudut Biru
                             </span>
-                            <button id="btnMonitorSide_2" onclick="switchMonitoringSide('2')" 
-                                    class="monitor-btn px-4 py-2 rounded-lg font-bold text-gray-600 bg-gray-200 border-2 border-gray-300 transition-all duration-200 hover:bg-gray-300 text-sm">
-                                Sudut Merah
-                            </button>
                         @else
-                            <button id="btnMonitorSide_{{ $allSides->first() ?? 1 }}" onclick="switchMonitoringSide('{{ $allSides->first() ?? 1 }}')" class="monitor-btn px-4 py-2 rounded-lg font-bold text-white transition-all duration-200 shadow hover:shadow-lg bg-purple-600 border-2 border-purple-700 text-sm">
-                                Peserta {{ $allSides->first() ?? 1 }}
-                            </button>
                             <span id="monitoringSideIndicator" class="px-3 py-1 rounded-md bg-purple-100 text-purple-800 font-semibold text-xs whitespace-nowrap">
                                 Monitor: Peserta {{ $allSides->first() ?? 1 }}
                             </span>
-                            @foreach($allSides as $sideNum)
-                                @if($loop->first) @continue @endif
-                                <button id="btnMonitorSide_{{ $sideNum }}" onclick="switchMonitoringSide('{{ $sideNum }}')" class="monitor-btn px-4 py-2 rounded-lg font-bold text-gray-600 bg-gray-200 border-2 border-gray-300 transition-all duration-200 hover:bg-gray-300 text-sm">
-                                    Peserta {{ $sideNum }}
-                                </button>
-                            @endforeach
                         @endif
                     </div>
                 </div>
@@ -154,7 +137,7 @@
         }));
 
         // Side monitoring
-        let monitoringSide = '1'; // Default: monitoring Side 1 (Sudut Biru)
+        let monitoringSide = '{{ $cachedSide ?? 1 }}'; // Default to cached side
 
         // Data storage
         const judgeScores = {};
@@ -170,19 +153,6 @@
             const indicator = document.getElementById('monitoringSideIndicator');
             const finalContainer = document.getElementById('final-score-container');
             const breakdownText = document.getElementById('final-score-breakdown');
-            
-            // Loop all monitor buttons and update styles
-            document.querySelectorAll('.monitor-btn').forEach(btn => {
-                const btnSide = btn.id.split('_')[1];
-                if (btnSide === side) {
-                    // Active style
-                    btn.className = 'monitor-btn px-4 py-2 rounded-lg font-bold text-white transition-all duration-200 shadow hover:shadow-lg border-2 text-sm ' + 
-                        (IS_PEMASALAN ? 'bg-purple-600 border-purple-700' : (side === '1' ? 'bg-blue-600 border-blue-700' : 'bg-red-600 border-red-700'));
-                } else {
-                    // Inactive style
-                    btn.className = 'monitor-btn px-4 py-2 rounded-lg font-bold text-gray-600 bg-gray-200 border-2 border-gray-300 transition-all duration-200 hover:bg-gray-300 text-sm';
-                }
-            });
 
             // Update Indicator text and styles
             if (IS_PEMASALAN) {
@@ -443,8 +413,16 @@
                         console.log('Penalty updated:', e);
                         fetchMatchData(); // Refresh all data
                     });
+
+                window.Echo.channel(`seni.${MATCH_ID}`)
+                    .listen('.ActiveSideChanged', (e) => {
+                        console.log('Active side changed by dewan:', e);
+                        if (e.side && e.side != monitoringSide) {
+                            switchMonitoringSide(e.side);
+                        }
+                    });
                     
-                console.log(`Subscribed to WebSocket: pertandingan.${MATCH_ID}`);
+                console.log(`Subscribed to WebSocket: pertandingan.${MATCH_ID} and seni.${MATCH_ID}`);
             } else {
                 console.warn('Laravel Echo not available, using polling only');
                 // Fallback to polling every 2 seconds
@@ -455,6 +433,7 @@
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', () => {
             console.log(`Match: ${MATCH_ID}, Type: ${MATCH_TYPE}, Max Jurus: ${MAX_JURUS}`);
+            switchMonitoringSide(monitoringSide); // Initialize UI state
             setupWebSocket();
         });
     </script>

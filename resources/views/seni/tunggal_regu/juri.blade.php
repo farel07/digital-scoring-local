@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Juri - {{ $pertandingan->kelas->nama_kelas ?? 'Seni' }}</title>
+    @vite(['resources/js/app.js'])
     <script src="https://cdn.tailwindcss.com"></script>
     <meta name="csrf-token" content="{{ csrf_token() }}">
 <<<<<<< HEAD
@@ -95,62 +96,7 @@
         </div>
 
         {{-- ════ PLAYER SELECTOR ════ --}}
-        @if($isPrestasi)
-        {{-- PRESTASI: Tombol ganti tim Biru ↔ Merah --}}
-        <div class="bg-white rounded-2xl shadow-md p-4 mb-5">
-            <p class="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">Sedang menilai tim:</p>
-            <div class="flex gap-3">
-                <a href="?side=1"
-                   class="flex-1 py-3 rounded-xl font-bold text-center transition-all
-                          {{ $currentSide == 1 ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-gray-100 text-gray-600 hover:bg-blue-50' }}">
-                    🔵 Sudut Biru
-                </a>
-                <a href="?side=2"
-                   class="flex-1 py-3 rounded-xl font-bold text-center transition-all
-                          {{ $currentSide == 2 ? 'bg-red-600 text-white shadow-lg shadow-red-200' : 'bg-gray-100 text-gray-600 hover:bg-red-50' }}">
-                    🔴 Sudut Merah
-                </a>
-            </div>
-        </div>
-
-        @else
-        {{-- PEMASALAN: Selector dinamis sesuai jumlah peserta --}}
-        <div class="bg-white rounded-2xl shadow-md p-4 mb-5">
-            <p class="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">
-                Pilih peserta yang sedang tampil:
-            </p>
-            <div class="flex flex-wrap gap-2" id="playerSelector">
-                @foreach(($allSides ?? []) as $sideNum)
-                @php
-                    $sidePlayers = ($allPlayers ?? collect())->get($sideNum, collect());
-                    $label = $sidePlayers->isNotEmpty()
-                        ? $sidePlayers->pluck('player_name')->implode(' / ')
-                        : 'Peserta '.$sideNum;
-                @endphp
-                <button type="button"
-                        data-side="{{ $sideNum }}"
-                        onclick="switchPlayer({{ $sideNum }})"
-                        class="player-selector-btn flex-1 min-w-[120px] py-3 px-4 rounded-xl border-2 font-semibold text-sm transition-all
-                               {{ $currentSide == $sideNum
-                                    ? 'bg-purple-600 text-white border-purple-700 shadow-lg shadow-purple-100'
-                                    : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-purple-50 hover:border-purple-300' }}">
-                    <div class="text-base">Peserta {{ $sideNum }}</div>
-                    <div class="text-xs opacity-80 truncate">{{ Str::limit($label, 28) }}</div>
-                </button>
-                @endforeach
-            </div>
-
-            {{-- Reset konfirmasi --}}
-            <div id="switchWarning" class="hidden mt-3 p-3 bg-amber-50 border border-amber-300 rounded-xl text-sm">
-                <p class="font-semibold text-amber-800 mb-2">⚠️ Ganti ke peserta <span id="switchTargetLabel"></span>?</p>
-                <p class="text-amber-700 text-xs mb-3">Skor yang sudah diinput untuk peserta saat ini akan tersimpan. Papan input akan direset ke Jurus 1.</p>
-                <div class="flex gap-2">
-                    <button onclick="confirmSwitch()" class="flex-1 bg-amber-600 text-white py-2 rounded-lg font-bold text-sm">Ya, Ganti</button>
-                    <button onclick="cancelSwitch()"  class="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg font-bold text-sm">Batal</button>
-                </div>
-            </div>
-        </div>
-        @endif
+        {{-- Removed because Juri now auto-switches based on Dewan --}}
 
         {{-- ════ SCORING GRID ════ --}}
         <div class="grid grid-cols-3 gap-4 mb-5">
@@ -270,53 +216,19 @@
             avatar.textContent = players[0] ? getInitials(players[0].name) : 'P' + side;
         }
 
-        function updateSelectorUI(side) {
-            document.querySelectorAll('.player-selector-btn').forEach(btn => {
-                const s = parseInt(btn.dataset.side);
-                if (s === side) {
-                    btn.className = btn.className
-                        .replace(/bg-gray-100|text-gray-600|border-gray-200|hover:[^ ]+/g, '')
-                        .trim();
-                    btn.classList.add('bg-purple-600','text-white','border-purple-700','shadow-lg','shadow-purple-100');
-                } else {
-                    btn.classList.remove('bg-purple-600','text-white','border-purple-700','shadow-lg','shadow-purple-100');
-                    btn.classList.add('bg-gray-100','text-gray-600','border-gray-200');
-                }
-            });
-        }
-
         // ─── Pemasalan: player switch ───
         let pendingSwitch = null;
-
-        function switchPlayer(side) {
-            if (side === currentSide) return;
-            if (!IS_PEMASALAN) return;
-
-            // Show confirmation warning
-            pendingSwitch = side;
-            const players = ALL_PLAYERS[side] || [];
-            const label = players.map(p => p.name).join(' / ') || 'Peserta ' + side;
-            document.getElementById('switchTargetLabel').textContent = label + ' (Peserta ' + side + ')';
-            document.getElementById('switchWarning').classList.remove('hidden');
-        }
 
         function confirmSwitch() {
             if (pendingSwitch === null) return;
             const newSide = pendingSwitch;
             pendingSwitch = null;
-            document.getElementById('switchWarning').classList.add('hidden');
 
             // Save current state (already in playerState[currentSide])
             // Switch
             currentSide = newSide;
             updateHeaderUI(currentSide);
-            updateSelectorUI(currentSide);
             renderFromState(getState(currentSide));
-        }
-
-        function cancelSwitch() {
-            pendingSwitch = null;
-            document.getElementById('switchWarning').classList.add('hidden');
         }
 
         // ─── Render from state ───
@@ -419,10 +331,31 @@
         }
 
         // ─── Init ───
-        (function init() {
+        document.addEventListener('DOMContentLoaded', () => {
             const initState = getState(currentSide);
             renderFromState(initState);
-        })();
+            
+            // Setup WebSocket after a slight delay to allow app.js to initialize window.Echo
+            setTimeout(() => {
+                if (window.Echo) {
+                    console.log('Subscribing to seni.' + PERTANDINGAN_ID);
+                    window.Echo.channel(`seni.${PERTANDINGAN_ID}`)
+                        .listen('.ActiveSideChanged', (e) => {
+                            console.log('Active side changed by dewan:', e);
+                            if (e.side && e.side != currentSide) {
+                                if (IS_PEMASALAN) {
+                                    pendingSwitch = e.side;
+                                    confirmSwitch(); // Switch instantly without warning if dewan changed it
+                                } else {
+                                    window.location.href = window.location.pathname + '?side=' + e.side;
+                                }
+                            }
+                        });
+                } else {
+                    console.error('Laravel Echo is not available.');
+                }
+            }, 500);
+        });
     </script>
 </body>
 </html>

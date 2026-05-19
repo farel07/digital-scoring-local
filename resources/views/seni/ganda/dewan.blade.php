@@ -259,6 +259,16 @@
             updateAllRows();
             updateGrandTotal();
             fetchActivePenalties();
+
+            // Notify server so others can sync (juri, penonton, dewanOperator)
+            fetch('/dewan-seni-ganda/switch-side', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                body: JSON.stringify({
+                    pertandingan_id: MATCH_ID,
+                    side: side
+                })
+            }).catch(e => console.error('Failed to broadcast side switch', e));
         }
 
         // Update top indicator badge

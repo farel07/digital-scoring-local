@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Penilaian Pertandingan Silat</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    @vite(['resources/js/app.js'])
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
@@ -41,39 +42,8 @@
             </div>
             <div class="flex items-center gap-4">
                 <div class="text-gray-600 text-sm">Arena {{ $pertandingan->arena->arena_name ?? '-' }} - {{ $user->role }}</div>
-                @if($isPrestasi)
-                <!-- Prestasi: tombol ganti ke sudut lawan -->
-                <a href="?side={{ $opponentSide }}" 
-                   class="bg-{{ $currentSide == 1 ? 'red' : 'blue' }}-600 hover:bg-{{ $currentSide == 1 ? 'red' : 'blue' }}-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
-                    Ganti ke {{ $opponentSide == 1 ? '🔵 Sudut Biru' : '🔴 Sudut Merah' }}
-                </a>
-                @endif
             </div>
         </div>
-
-        @if(!$isPrestasi)
-        <!-- Pemasalan: selector per peserta -->
-        <div class="mt-3 border-t border-gray-200 pt-3">
-            <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">Pilih Peserta:</p>
-            <div class="flex flex-wrap gap-2">
-                @foreach(($allSides ?? []) as $sideNum)
-                @php
-                    $sidePlayers = ($allPlayers ?? collect())->get($sideNum, collect());
-                    $label = $sidePlayers->isNotEmpty()
-                        ? $sidePlayers->first()->player_name
-                        : 'Peserta '.$sideNum;
-                @endphp
-                <a href="?side={{ $sideNum }}"
-                   class="px-3 py-2 rounded-lg font-semibold text-sm transition-all
-                          {{ $currentSide == $sideNum
-                               ? 'bg-purple-600 text-white shadow'
-                               : 'bg-gray-100 text-gray-600 hover:bg-purple-50 hover:text-purple-700' }}">
-                    Peserta {{ $sideNum }}: {{ Str::limit($label, 20) }}
-                </a>
-                @endforeach
-            </div>
-        </div>
-        @endif
     </header>
 
     <!-- Main Content -->
@@ -148,6 +118,8 @@
     </main>
 
     <script>
+        const currentSide = '{{ $currentSide }}';
+
         // Score tracking
         let scores = {
             teknik: {{ $existingScore->teknik ?? 0 }},
@@ -300,6 +272,19 @@
                 if(btn) selectScore('penampilan', scores.penampilan, btn, 'penampilan-buttons');
             }
             console.log('=====================================');
+
+            // Setup WebSocket
+            setTimeout(() => {
+                if (window.Echo) {
+                    window.Echo.channel(`seni.${matchId}`)
+                        .listen('.ActiveSideChanged', (e) => {
+                            if (e.side && e.side != currentSide) {
+                                window.location.href = '?side=' + e.side;
+                            }
+                        });
+                    console.log('Listening for side changes from Dewan');
+                }
+            }, 500);
         });
     </script>
 <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97ac622534fc9fe5',t:'MTc1NzE0NTEwOS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>

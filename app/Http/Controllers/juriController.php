@@ -51,8 +51,9 @@ class juriController extends Controller
         $allPlayers = $pertandingan->players->groupBy('side_number');
         $allSides   = $allPlayers->keys()->sort()->values(); // [1, 2, ...]
 
-        // Get side parameter from URL (default to first side = 1)
-        $side = (int) request()->get('side', $allSides->first() ?? 1);
+        // Get side parameter from URL or Cache (default to first side = 1)
+        $cachedSide = \Illuminate\Support\Facades\Cache::get("active_side_seni_tunggal_{$pertandingan->id}");
+        $side = (int) request()->get('side', $cachedSide ?? $allSides->first() ?? 1);
 
         // Get players for current side
         $currentSidePlayers = $allPlayers->get($side, collect());
@@ -363,8 +364,9 @@ class juriController extends Controller
         $allPlayers = $pertandingan->players->groupBy('side_number');
         $allSides   = $allPlayers->keys()->sort()->values(); // [1, 2, ...]
 
-        // Get side parameter from URL (default to first side)
-        $side = (int) request()->get('side', $allSides->first() ?? 1);
+        // Get side parameter from URL or Cache (default to first side)
+        $cachedSide = \Illuminate\Support\Facades\Cache::get("active_side_seni_ganda_{$pertandingan->id}");
+        $side = (int) request()->get('side', $cachedSide ?? $allSides->first() ?? 1);
 
         // Get players for current side
         $currentSidePlayers = $allPlayers->get($side, collect());

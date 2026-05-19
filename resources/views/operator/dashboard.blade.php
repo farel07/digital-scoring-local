@@ -159,7 +159,16 @@
                                 </select>
                                 
                                 @if($match->status == 'berlangsung')
-                                    <a href="/penilaian/{{ $match->id }}" class="btn btn-sm btn-success">
+                                    @php
+                                        $namaKelas = strtolower($match->kelas->nama_kelas ?? '');
+                                        $targetUrl = "/penilaian/{$match->id}";
+                                        if (str_contains($namaKelas, 'seni ganda')) {
+                                            $targetUrl = "/penonton-seni-ganda/{$match->id}";
+                                        } elseif (str_contains($namaKelas, 'seni regu') || str_contains($match->kelas->jenis_pertandingan ?? '', 'regu') || str_contains($namaKelas, 'seni tunggal') || str_contains($match->kelas->jenis_pertandingan ?? '', 'tunggal')) {
+                                            $targetUrl = "/penonton-seni-tunggal-regu/{$match->id}";
+                                        }
+                                    @endphp
+                                    <a href="{{ $targetUrl }}" class="btn btn-sm btn-success">
                                         Lihat Match
                                     </a>
                                 @endif

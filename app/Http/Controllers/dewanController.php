@@ -43,6 +43,8 @@ class dewanController extends Controller
         $allPlayers = $pertandingan->players->groupBy('side_number');
         $allSides   = $allPlayers->keys()->sort()->values();
 
+        $cachedSide = \Illuminate\Support\Facades\Cache::get("active_side_seni_tunggal_{$pertandingan->id}") ?? ($allSides->first() ?? 1);
+
         return view('seni.tunggal_regu.dewan', [
             'id'                => $pertandingan->id,
             'user'              => $user,
@@ -51,6 +53,7 @@ class dewanController extends Controller
             'jenisPertandingan' => $jenisPertandingan,
             'allPlayers'        => $allPlayers,
             'allSides'          => $allSides,
+            'cachedSide'        => $cachedSide,
         ]);
     }
 
@@ -126,6 +129,28 @@ class dewanController extends Controller
         broadcast(new KirimPenalti($validatedData))->toOthers();
 
         return response()->json(['status' => 'success', 'data' => $validatedData]);
+    }
+
+    public function switch_active_side_tunggal_regu(Request $request)
+    {
+        $validatedData = $request->validate([
+            'pertandingan_id' => 'required|integer',
+            'side'            => 'required|string',
+        ]);
+
+        $pertandinganId = $validatedData['pertandingan_id'];
+        $side = $validatedData['side'];
+
+        // Store in cache for 24 hours so latecomers can get it
+        \Illuminate\Support\Facades\Cache::put("active_side_seni_tunggal_{$pertandinganId}", $side, 86400);
+
+        // Broadcast event
+        broadcast(new \App\Events\ActiveSideChangedSeni($pertandinganId, $side))->toOthers();
+
+        return response()->json([
+            'status' => 'success',
+            'side' => $side
+        ]);
     }
 
     function kirim_penalti_tanding(Request $request)
@@ -262,6 +287,8 @@ class dewanController extends Controller
         $allPlayers = $pertandingan->players->groupBy('side_number');
         $allSides   = $allPlayers->keys()->sort()->values();
 
+        $cachedSide = \Illuminate\Support\Facades\Cache::get("active_side_seni_ganda_{$pertandingan->id}") ?? ($allSides->first() ?? 1);
+
         return view('seni.ganda.dewan', [
             'id'                => $pertandingan->id,
             'user'              => $user,
@@ -269,6 +296,7 @@ class dewanController extends Controller
             'jenisPertandingan' => $jenisPertandingan,
             'allPlayers'        => $allPlayers,
             'allSides'          => $allSides,
+            'cachedSide'        => $cachedSide,
         ]);
     }
 
@@ -311,6 +339,28 @@ class dewanController extends Controller
                 'message' => 'Gagal mengupdate penalti: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    public function switch_active_side_ganda(Request $request)
+    {
+        $validatedData = $request->validate([
+            'pertandingan_id' => 'required|integer',
+            'side'            => 'required|string',
+        ]);
+
+        $pertandinganId = $validatedData['pertandingan_id'];
+        $side = $validatedData['side'];
+
+        // Store in cache for 24 hours so latecomers can get it
+        \Illuminate\Support\Facades\Cache::put("active_side_seni_ganda_{$pertandinganId}", $side, 86400);
+
+        // Broadcast event reusing the same event used by tunggal/regu
+        broadcast(new \App\Events\ActiveSideChangedSeni($pertandinganId, $side))->toOthers();
+
+        return response()->json([
+            'status' => 'success',
+            'side' => $side
+        ]);
     }
 
     /**
