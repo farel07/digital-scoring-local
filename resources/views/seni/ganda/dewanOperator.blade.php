@@ -35,32 +35,9 @@
             
             <!-- Side Monitor Toggle -->
             <div class="flex justify-center mt-4 gap-3 flex-wrap">
-                @if(($jenisPertandingan ?? 'prestasi') === 'prestasi')
-                    <button id="btnMonitorSide_1" onclick="switchMonitoringSide('1')"
-                        class="monitor-btn px-5 py-2 rounded-lg font-bold text-white transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 bg-blue-600 border-2 border-blue-700 text-sm">
-                        Sudut Biru
-                    </button>
-                    <span id="monitoringSideIndicator" class="px-3 py-1 rounded-md bg-blue-100 text-blue-800 font-semibold text-xs self-center">
-                        Monitor: Sudut Biru
-                    </span>
-                    <button id="btnMonitorSide_2" onclick="switchMonitoringSide('2')"
-                        class="monitor-btn px-5 py-2 rounded-lg font-bold text-gray-600 bg-gray-200 border-2 border-gray-300 transition-all duration-200 hover:bg-gray-300 text-sm">
-                        Sudut Merah
-                    </button>
-                @else
-                    <button id="btnMonitorSide_{{ $allSides->first() ?? 1 }}" onclick="switchMonitoringSide('{{ $allSides->first() ?? 1 }}')" class="monitor-btn px-5 py-2 rounded-lg font-bold text-white transition-all duration-200 shadow-md hover:shadow-lg bg-purple-600 border-2 border-purple-700 text-sm">
-                        Peserta {{ $allSides->first() ?? 1 }}
-                    </button>
-                    <span id="monitoringSideIndicator" class="px-3 py-1 rounded-md bg-purple-100 text-purple-800 font-semibold text-xs self-center">
-                        Monitor: Peserta {{ $allSides->first() ?? 1 }}
-                    </span>
-                    @foreach($allSides as $sideNum)
-                        @if($loop->first) @continue @endif
-                        <button id="btnMonitorSide_{{ $sideNum }}" onclick="switchMonitoringSide('{{ $sideNum }}')" class="monitor-btn px-5 py-2 rounded-lg font-bold text-gray-600 bg-gray-200 border-2 border-gray-300 transition-all duration-200 hover:bg-gray-300 text-sm">
-                            Peserta {{ $sideNum }}
-                        </button>
-                    @endforeach
-                @endif
+                <span id="monitoringSideIndicator" class="px-3 py-1 rounded-md bg-gray-100 text-gray-800 font-semibold text-xs self-center">
+                    Monitor: Syncing...
+                </span>
             </div>
         </div>
 
@@ -155,7 +132,7 @@
         let previousPenalties = [];
         
         // Side monitoring state
-        let monitoringSide = '1'; // Default: Sudut Biru
+        let monitoringSide = '{{ $cachedSide ?? 1 }}'; // Initialized from cache
         let pendingHighlightJudgeId = null; // Track judge to highlight
 
         // Get match_id from passed parameter
@@ -170,17 +147,6 @@
             monitoringSide = side = String(side);
 
             const indicator = document.getElementById('monitoringSideIndicator');
-
-            // Update all monitor buttons generically
-            document.querySelectorAll('.monitor-btn').forEach(btn => {
-                const btnSide = btn.id.split('_')[1];
-                if (btnSide === side) {
-                    btn.className = 'monitor-btn px-5 py-2 rounded-lg font-bold text-white transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 border-2 text-sm ' +
-                        (IS_PEMASALAN ? 'bg-purple-600 border-purple-700' : (side === '1' ? 'bg-blue-600 border-blue-700' : 'bg-red-600 border-red-700'));
-                } else {
-                    btn.className = 'monitor-btn px-5 py-2 rounded-lg font-bold text-gray-600 bg-gray-200 border-2 border-gray-300 transition-all duration-200 hover:bg-gray-300 text-sm';
-                }
-            });
 
             // Update indicator text & color
             if (IS_PEMASALAN) {
@@ -561,8 +527,17 @@
                         // Re-fetch all data to update display
                         fetchEvents();
                     });
+
+                // Subscribe to side changes from Dewan
+                window.Echo.channel(`seni.${matchId}`)
+                    .listen('.ActiveSideChanged', (e) => {
+                        console.log('Active side changed by dewan:', e);
+                        if (e.side && e.side != monitoringSide) {
+                            switchMonitoringSide(e.side);
+                        }
+                    });
                     
-                console.log(`Subscribed to WebSocket channel: pertandingan.${matchId}`);
+                console.log(`Subscribed to WebSocket channels: pertandingan.${matchId}, seni.${matchId}`);
             } else {
                 console.warn('Laravel Echo not available, falling back to polling');
                 // Fallback to polling if Echo not available
@@ -578,8 +553,10 @@
             // Initial render with default judges
             renderDashboard({ judges: {}, penalties: [], total_penalties: 0 });
             
+            switchMonitoringSide(monitoringSide); // Initialize UI state
+            
             // Setup WebSocket or polling
-            setupWebSocket();
+            setTimeout(setupWebSocket, 500);
         });
     </script>
 <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9741b1cf8379ea87',t:'MTc1NjAyNjM5Ni4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>

@@ -22,9 +22,9 @@ use App\Http\Controllers\AuthController;
 |
 */
 
-// Route::get('/', function () {
-//     return view('welcome');
-// });
+Route::get('/route_test', function () {
+    return view('welcome');
+});
 Route::get('/', [AuthController::class, 'showLoginForm'])->name('login');
 
 // Authentication Routes
@@ -82,6 +82,7 @@ route::post('/juri-seni-ganda/kirim-poin', [juriController::class, 'kirim_poin_g
 
 Route::get('/dewan-seni-ganda/{id}', [dewanController::class, 'index_ganda']);
 Route::post('/dewan-seni-ganda/kirim-penalti', [dewanController::class, 'kirim_penalti_ganda']);
+Route::post('/dewan-seni-ganda/switch-side', [dewanController::class, 'switch_active_side_ganda']);
 
 Route::get('/dewan-operator-seni-ganda/{id}', [dewanOperatorController::class, 'index_ganda']);
 
@@ -101,6 +102,7 @@ Route::post('/seni/tunggal-regu/set-category', [juriController::class, 'setCateg
 
 Route::get('/dewan-seni-tunggal-regu/{user_id}', [dewanController::class, 'index_tunggal_regu']);
 Route::post('/dewan-seni-tunggal-regu/kirim-penalti', [dewanController::class, 'kirim_pelanggaran_seni_tunggal_regu']);
+Route::post('/dewan-seni-tunggal-regu/switch-side', [dewanController::class, 'switch_active_side_tunggal_regu']);
 
 // API route for tunggal/regu events
 Route::get('/api/seni/tunggal-regu/events/{matchId}', [App\Http\Controllers\TunggalReguApiController::class, 'getEvents']);
