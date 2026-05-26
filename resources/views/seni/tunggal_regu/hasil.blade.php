@@ -367,6 +367,7 @@
             100% { opacity: 1; }
         }
     </style>
+    @include('components.auto-refresh')
 </head>
 <body>
 

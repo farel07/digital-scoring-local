@@ -136,10 +136,9 @@ class OperatorController extends Controller
         $pertandingan->status = $newStatus;
         $pertandingan->save();
 
-        // If changed to berlangsung, broadcast event to reload clients
-        if ($newStatus === 'berlangsung') {
-            broadcast(new MatchStatusChanged($pertandingan->arena_id, $pertandingan->id, $newStatus))->toOthers();
-        }
+        // Broadcast event to reload/redirect clients in the arena
+        broadcast(new MatchStatusChanged($pertandingan->arena_id, $pertandingan->id, $newStatus))->toOthers();
+
 
         return response()->json([
             'success' => true,

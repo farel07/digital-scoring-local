@@ -219,6 +219,7 @@
         .highlight-score { animation: flashScore 0.8s ease-in-out; }
         @keyframes flashScore { 0%{opacity:1;} 30%{opacity:0.3;background:rgba(251,191,36,0.3);border-radius:4px;} 100%{opacity:1;} }
     </style>
+    @include('components.auto-refresh')
 </head>
 <body>
 <div class="scoreboard">

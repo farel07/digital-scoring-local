@@ -3,27 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tidak Ada Pertandingan Aktif</title>
+    <title>Menunggu Pertandingan - Digital Scoring</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    @include('components.auto-refresh')
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: radial-gradient(circle at 50% 50%, #1e1b4b 0%, #0f172a 100%);
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        .pulse-glow {
+            box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.7);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.7);
+            }
+            70% {
+                transform: scale(1);
+                box-shadow: 0 0 0 20px rgba(99, 102, 241, 0);
+            }
+            100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(99, 102, 241, 0);
+            }
+        }
+    </style>
 </head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center">
-    <div class="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
-        <div class="mb-4">
-            <svg class="mx-auto h-16 w-16 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-            </svg>
+<body class="min-h-screen flex items-center justify-center p-4">
+    <div class="max-w-md w-full glass-card rounded-3xl p-10 text-center relative overflow-hidden">
+        <!-- Decorative Glow -->
+        <div class="absolute -top-24 -left-24 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl"></div>
+        <div class="absolute -bottom-24 -right-24 w-48 h-48 bg-purple-500/10 rounded-full blur-3xl"></div>
+
+        <!-- Loader/Icon -->
+        <div class="mb-8 relative flex justify-center">
+            <div class="w-24 h-24 rounded-full bg-indigo-500/10 flex items-center justify-center pulse-glow border border-indigo-500/30">
+                <svg class="h-10 w-10 text-indigo-400 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            </div>
         </div>
-        <h1 class="text-2xl font-bold text-gray-800 mb-2">Tidak Ada Pertandingan Aktif</h1>
-        <p class="text-gray-600 mb-6">
+
+        <h1 class="text-3xl font-extrabold text-white tracking-tight mb-3">Menunggu Pertandingan</h1>
+        <p class="text-indigo-200/60 text-lg mb-6 leading-relaxed">
             {{ $message ?? 'Tidak ada pertandingan yang sedang berlangsung di arena Anda saat ini.' }}
         </p>
-        <div class="text-sm text-gray-500">
-            <p>Silakan hubungi operator jika ada pertanyaan.</p>
-        </div>
-        <div class="mt-6">
-            <a href="javascript:history.back()" class="inline-block bg-blue-500 hover:bg-blue-600 text-white font-semibold px-6 py-2 rounded-lg transition-colors">
-                Kembali
-            </a>
+
+        @if(isset($arena_name) && $arena_name !== '-')
+            <div class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-indigo-300 font-semibold text-sm mb-8">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                {{ $arena_name }}
+            </div>
+        @endif
+
+        <div class="text-sm text-indigo-300/40">
+            <p>Halaman ini akan otomatis memuat pertandingan baru begitu operator mengaktifkannya.</p>
         </div>
     </div>
 </body>

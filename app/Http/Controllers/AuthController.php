@@ -55,6 +55,9 @@ class AuthController extends Controller
 
     /**
      * Get redirect URL based on user role and assigned arena.
+     *
+     * @param \App\Models\User $user
+     * @return string
      */
     private function getRedirectUrl($user)
     {
@@ -78,8 +81,8 @@ class AuthController extends Controller
             ->first();
 
         if (!$activeMatch) {
-            // No active match, go to welcome page
-            return '/';
+            // No active match, go to waiting page
+            return '/waiting-match';
         }
 
         // Route based on role and match type
@@ -192,9 +195,50 @@ class AuthController extends Controller
             return response()->json(['url' => '/login']);
         }
 
+        /** @var \App\Models\User $user */
         $user = Auth::user();
         $redirectUrl = $this->getRedirectUrl($user);
 
         return response()->json(['url' => $redirectUrl]);
+    }
+
+    /**
+     * Show waiting match page
+     */
+    public function waitingMatch()
+    {
+        if (!Auth::check()) {
+            return redirect('/login');
+        }
+
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        // Get user's assigned arena
+        $arena = $user->arenas()->first();
+        $arenaId = $arena ? $arena->id : null;
+        $arenaName = $arena ? $arena->arena_name : '-';
+
+        // Check if there is already an active match in this arena
+        $activeMatch = null;
+        if ($arenaId) {
+            $activeMatch = \App\Models\Pertandingan::where('arena_id', $arenaId)
+                ->where('status', 'berlangsung')
+                ->first();
+        }
+
+        // If there is already an active match, redirect immediately!
+        if ($activeMatch) {
+            $redirectUrl = $this->getRedirectUrl($user);
+            if ($redirectUrl !== '/waiting-match' && $redirectUrl !== '/') {
+                return redirect($redirectUrl);
+            }
+        }
+
+        return view('errors.no-active-match', [
+            'message' => 'Tidak ada pertandingan yang sedang berlangsung di ' . $arenaName . ' saat ini.',
+            'arena_id' => $arenaId,
+            'arena_name' => $arenaName,
+        ]);
     }
 }

@@ -28,8 +28,12 @@ class dewanController extends Controller
         $pertandingan = \App\Helpers\MatchResolver::getActiveMatchForUser($userId);
 
         if (!$pertandingan) {
+            $user         = \App\Models\User::find($userId);
+            $arena = $user ? $user->arenas()->first() : null;
             return response()->view('errors.no-active-match', [
-                'message' => 'Tidak ada pertandingan yang sedang berlangsung di arena Anda.'
+                'message' => 'Tidak ada pertandingan yang sedang berlangsung di arena Anda.',
+                'arena_id' => $arena ? $arena->id : null,
+                'arena_name' => $arena ? $arena->arena_name : '-',
             ], 404);
         }
 
@@ -61,6 +65,10 @@ class dewanController extends Controller
     public function tanding_index($id)
     {
         $pertandingan = Pertandingan::findOrFail($id);
+
+        if ($pertandingan->status === 'selesai') {
+            return redirect('/waiting-match');
+        }
 
         // Validasi: Cek apakah user punya akses ke pertandingan ini
         $user_id = auth()->user()->id;
@@ -543,6 +551,10 @@ class dewanController extends Controller
                 'winner_id' => $validated['winner_id'],
                 'status'    => 'selesai'
             ]);
+
+            // Broadcast MatchStatusChanged to notify other clients in the arena
+            broadcast(new \App\Events\MatchStatusChanged($pertandingan->arena_id, $pertandingan->id, 'selesai'))->toOthers();
+
 
             // If there's a next match, advance the winner
             if ($pertandingan->next_match_id) {

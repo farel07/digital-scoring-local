@@ -29,6 +29,7 @@
             animation: flashYellow 1.2s ease-in-out;
         }
     </style>
+    @include('components.auto-refresh')
 </head>
 <body class="h-screen bg-gradient-to-br from-slate-300 via-gray-300 to-slate-100 p-3 font-display overflow-hidden">
     <div class="h-full max-w-6xl mx-auto flex flex-col">

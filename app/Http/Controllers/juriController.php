@@ -32,8 +32,12 @@ class juriController extends Controller
         $pertandingan = \App\Helpers\MatchResolver::getActiveMatchForUser($userId);
 
         if (!$pertandingan) {
+            $user = \App\Models\User::find($userId);
+            $arena = $user ? $user->arenas()->first() : null;
             return response()->view('errors.no-active-match', [
-                'message' => 'Tidak ada pertandingan yang sedang berlangsung di arena Anda.'
+                'message' => 'Tidak ada pertandingan yang sedang berlangsung di arena Anda.',
+                'arena_id' => $arena ? $arena->id : null,
+                'arena_name' => $arena ? $arena->arena_name : '-',
             ], 404);
         }
 
@@ -175,6 +179,11 @@ class juriController extends Controller
     public function tanding_index($id)
     {
         $pertandingan = Pertandingan::findOrFail($id);
+
+        if ($pertandingan->status === 'selesai') {
+            return redirect('/waiting-match');
+        }
+
         // Validasi: Cek apakah user punya akses ke pertandingan ini
         $user_id = auth()->user()->id;
         $user = User::find($user_id);

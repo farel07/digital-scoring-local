@@ -22,8 +22,12 @@ class dewanOperatorController extends Controller
         $pertandingan = \App\Helpers\MatchResolver::getActiveMatchForUser($id);
 
         if (!$pertandingan) {
+            $user = User::find($id);
+            $arena = $user ? $user->arenas()->first() : null;
             return response()->view('errors.no-active-match', [
-                'message' => 'Tidak ada pertandingan yang sedang berlangsung di arena Anda.'
+                'message' => 'Tidak ada pertandingan yang sedang berlangsung di arena Anda.',
+                'arena_id' => $arena ? $arena->id : null,
+                'arena_name' => $arena ? $arena->arena_name : '-',
             ], 404);
         }
 
@@ -53,8 +57,12 @@ class dewanOperatorController extends Controller
         $pertandingan = \App\Helpers\MatchResolver::getActiveMatchForUser($id);
 
         if (!$pertandingan) {
+            $user = User::find($id);
+            $arena = $user ? $user->arenas()->first() : null;
             return response()->view('errors.no-active-match', [
-                'message' => 'Tidak ada pertandingan yang sedang berlangsung di arena Anda.'
+                'message' => 'Tidak ada pertandingan yang sedang berlangsung di arena Anda.',
+                'arena_id' => $arena ? $arena->id : null,
+                'arena_name' => $arena ? $arena->arena_name : '-',
             ], 404);
         }
 
@@ -88,8 +96,12 @@ class dewanOperatorController extends Controller
         $pertandingan = \App\Helpers\MatchResolver::getActiveMatchForUser($id);
 
         if (!$pertandingan) {
+            $user = User::find($id);
+            $arena = $user ? $user->arenas()->first() : null;
             return response()->view('errors.no-active-match', [
-                'message' => 'Tidak ada pertandingan yang sedang berlangsung di arena Anda.'
+                'message' => 'Tidak ada pertandingan yang sedang berlangsung di arena Anda.',
+                'arena_id' => $arena ? $arena->id : null,
+                'arena_name' => $arena ? $arena->arena_name : '-',
             ], 404);
         }
 
@@ -109,8 +121,12 @@ class dewanOperatorController extends Controller
         $pertandingan = MatchResolver::getActiveMatchForUser($userId);
 
         if (!$pertandingan) {
+            $user = User::find($userId);
+            $arena = $user ? $user->arenas()->first() : null;
             return response()->view('errors.no-active-match', [
-                'message' => 'Tidak ada pertandingan yang sedang berlangsung di arena Anda.'
+                'message' => 'Tidak ada pertandingan yang sedang berlangsung di arena Anda.',
+                'arena_id' => $arena ? $arena->id : null,
+                'arena_name' => $arena ? $arena->arena_name : '-',
             ], 404);
         }
 
@@ -151,8 +167,12 @@ class dewanOperatorController extends Controller
         $pertandingan = MatchResolver::getActiveMatchForUser($userId);
 
         if (!$pertandingan) {
+            $user = User::find($userId);
+            $arena = $user ? $user->arenas()->first() : null;
             return response()->view('errors.no-active-match', [
-                'message' => 'Tidak ada pertandingan yang sedang berlangsung di arena Anda.'
+                'message' => 'Tidak ada pertandingan yang sedang berlangsung di arena Anda.',
+                'arena_id' => $arena ? $arena->id : null,
+                'arena_name' => $arena ? $arena->arena_name : '-',
             ], 404);
         }
 
@@ -197,8 +217,12 @@ class dewanOperatorController extends Controller
         $pertandingan = MatchResolver::getActiveMatchForUser($userId);
 
         if (!$pertandingan) {
+            $user = User::find($userId);
+            $arena = $user ? $user->arenas()->first() : null;
             return response()->view('errors.no-active-match', [
-                'message' => 'Tidak ada pertandingan yang sedang berlangsung di arena Anda.'
+                'message' => 'Tidak ada pertandingan yang sedang berlangsung di arena Anda.',
+                'arena_id' => $arena ? $arena->id : null,
+                'arena_name' => $arena ? $arena->arena_name : '-',
             ], 404);
         }
 

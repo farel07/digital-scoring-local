@@ -17,7 +17,7 @@
     <title>Document</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
     @yield('styles')
-
+    @include('components.auto-refresh')
 </head>
 
 <body>
