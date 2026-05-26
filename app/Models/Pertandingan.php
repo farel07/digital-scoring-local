@@ -28,6 +28,7 @@ class Pertandingan extends Model
         'nomor_partai',
         'status',
         'jenis_pertandingan',
+        'winner_id',
     ];
 
     /**
@@ -88,6 +89,14 @@ class Pertandingan extends Model
     public function players()
     {
         return $this->hasMany(PertandinganPlayer::class, 'pertandingan_id');
+    }
+
+    /**
+     * Get the winner of the pertandingan.
+     */
+    public function winner()
+    {
+        return $this->belongsTo(PertandinganPlayer::class, 'winner_id');
     }
 
     /**

@@ -46,8 +46,8 @@
             {{-- title --}}
             <div class="d-flex justify-content-between">
                 <div class="m-2">
-                    <p class="text-start m-0">{{ $playerBlue->player_contingent }}</p>
-                    <h5 class="text-primary">{{ $playerBlue->player_name }}</h5>
+                    <p class="text-start m-0">{{ $playerBlue?->player_contingent ?? '-' }}</p>
+                    <h5 class="text-primary">{{ $playerBlue?->player_name ?? 'Menunggu Pemenang...' }}</h5>
                 </div>
                 <div class="m-2 text-center">
                     <p class="m-0 fw-bold">PARTAI {{ $pertandingan->partai ?? '-' }}</p>
@@ -57,8 +57,8 @@
                     </span>
                 </div>
                 <div class="mt-2 me-2">
-                    <p class="text-end m-0">{{ $playerRed->player_contingent }}</p>
-                    <h5 class="text-end text-danger">{{ $playerRed->player_name }}</h5>
+                    <p class="text-end m-0">{{ $playerRed?->player_contingent ?? '-' }}</p>
+                    <h5 class="text-end text-danger">{{ $playerRed?->player_name ?? 'Menunggu Pemenang...' }}</h5>
                 </div>
             </div>
             {{-- end title --}}

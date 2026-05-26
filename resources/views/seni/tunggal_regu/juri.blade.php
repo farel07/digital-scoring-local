@@ -27,7 +27,7 @@
     $sideColors   = [1 => 'blue', 2 => 'red'];       // warna untuk prestasi
     $sideColor    = $sideColors[$currentSide] ?? 'purple';
     $firstPlayer  = $currentSidePlayers->first();
-    $contingent   = $firstPlayer->player_contingent ?? '-';
+    $contingent   = $firstPlayer?->player_contingent ?? '-';
     $initials     = $firstPlayer ? strtoupper(substr($firstPlayer->player_name, 0, 2)) : 'P'.$currentSide;
 @endphp
 

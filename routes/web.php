@@ -67,6 +67,7 @@ Route::post('/dewan/kirim-penalti-tanding', [dewanController::class, 'kirim_pena
 
 // Validation request routes
 Route::post('/dewan-tanding/request-validation', [dewanController::class, 'requestValidation']);
+Route::post('/dewan-tanding/set-winner', [dewanController::class, 'setWinner']);
 Route::get('/dewan-tanding/last-validation/{id}', [dewanController::class, 'getLastValidation']);
 Route::get('/dewan-tanding/penalty-counts/{id}', [dewanController::class, 'getPenaltyCounts']);
 Route::get('/dewan-tanding/penalty-counts-per-round/{id}', [dewanController::class, 'getPenaltyCountsPerRound']);

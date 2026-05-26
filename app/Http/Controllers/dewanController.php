@@ -11,6 +11,7 @@ use App\Models\TandingPenalty;
 use App\Models\User;
 use App\Models\ValidationRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class dewanController extends Controller
 {
@@ -511,6 +512,81 @@ class dewanController extends Controller
         }
 
         return response()->json($result);
+    }
+
+    /**
+     * Set the winner of the pertandingan and advance them to the next match.
+     */
+    public function setWinner(Request $request)
+    {
+        $validated = $request->validate([
+            'pertandingan_id' => 'required|integer|exists:pertandingan,id',
+            'winner_id'       => 'required|integer|exists:pertandingan_player,id',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $pertandingan = Pertandingan::with('players')->findOrFail($validated['pertandingan_id']);
+            
+            // Validate that the winner is indeed a player of this match
+            $winnerPlayer = $pertandingan->players->firstWhere('id', $validated['winner_id']);
+            if (!$winnerPlayer) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Pemain yang dipilih tidak terdaftar di pertandingan ini.'
+                ], 400);
+            }
+
+            // Save winner and update status
+            $pertandingan->update([
+                'winner_id' => $validated['winner_id'],
+                'status'    => 'selesai'
+            ]);
+
+            // If there's a next match, advance the winner
+            if ($pertandingan->next_match_id) {
+                $nextMatch = Pertandingan::find($pertandingan->next_match_id);
+                if ($nextMatch) {
+                    // Check if player is already advanced to next match
+                    $alreadyExists = $nextMatch->players()
+                        ->where('player_name', $winnerPlayer->player_name)
+                        ->where('player_contingent', $winnerPlayer->player_contingent)
+                        ->exists();
+
+                    if (!$alreadyExists) {
+                        $existingCount = $nextMatch->players()->count();
+                        
+                        // If count is 0, side_number = 1. If 1, side_number = 2.
+                        // If somehow >= 2, we fallback to 2 or ignore.
+                        if ($existingCount < 2) {
+                            $sideNumber = ($existingCount === 0) ? 1 : 2;
+
+                            $nextMatch->players()->create([
+                                'player_name'       => $winnerPlayer->player_name,
+                                'player_contingent' => $winnerPlayer->player_contingent,
+                                'side_number'       => $sideNumber,
+                                'total_score'       => 0,
+                            ]);
+                        }
+                    }
+                }
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'status'  => 'success',
+                'message' => 'Pemenang berhasil ditentukan dan diloloskan ke babak berikutnya.'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Gagal menentukan pemenang: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }
 

@@ -283,8 +283,8 @@
         <div class="header-section">
             <div class="row align-items-center">
                 <div class="col-md-4">
-                    <p class="text-muted m-0">{{ $playerBlue->player_contingent }}</p>
-                    <h5 class="text-primary">{{ $playerBlue->player_name }}</h5>
+                    <p class="text-muted m-0">{{ $playerBlue?->player_contingent ?? '-' }}</p>
+                    <h5 class="text-primary">{{ $playerBlue?->player_name ?? 'Menunggu Pemenang...' }}</h5>
                 </div>
                 <div class="col-md-4 text-center my-3 my-md-0">
                     <div class="match-info">
@@ -296,8 +296,8 @@
                     </div>
                 </div>
                 <div class="col-md-4 text-end">
-                    <p class="text-muted m-0">{{ $playerRed->player_contingent }}</p>
-                    <h5 class="text-danger">{{ $playerRed->player_name }}</h5>
+                    <p class="text-muted m-0">{{ $playerRed?->player_contingent ?? '-' }}</p>
+                    <h5 class="text-danger">{{ $playerRed?->player_name ?? 'Menunggu Pemenang...' }}</h5>
                 </div>
             </div>
         </div>
@@ -358,7 +358,7 @@
                         <button type="button" class="control-btn btn btn-warning text-white" data-bs-toggle="modal" data-bs-target="#exampleModal">
                             REQUEST VALIDATION
                         </button>
-                        <button class="control-btn btn btn-success text-white">TENTUKAN PEMENANG</button>
+                        <button class="control-btn btn btn-success text-white" data-bs-toggle="modal" data-bs-target="#winnerModal">TENTUKAN PEMENANG</button>
                         
                         <div class="mt-3">
                             <div class="validation-display">LAST VALIDATION</div>
@@ -504,11 +504,79 @@
     </div>
 </div>
 
+{{-- MODAL - Tentukan Pemenang --}}
+<div class="modal fade" id="winnerModal" tabindex="-1" aria-labelledby="winnerModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title w-100 text-center" id="winnerModalLabel">TENTUKAN PEMENANG</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 text-center">
+                <p class="mb-4 fw-bold">Pilih sudut pemenang untuk pertandingan ini:</p>
+                <div class="d-grid gap-3">
+                    @if($playerBlue)
+                        <button class="btn btn-primary btn-lg py-3 fw-bold" onclick="selectWinner({{ $playerBlue->id }}, '{{ addslashes($playerBlue->player_name) }}')">
+                            🟦 SUDUT BIRU<br>
+                            <small class="fw-normal">{{ $playerBlue->player_name }} ({{ $playerBlue->player_contingent }})</small>
+                        </button>
+                    @endif
+                    @if($playerRed)
+                        <button class="btn btn-danger btn-lg py-3 fw-bold" onclick="selectWinner({{ $playerRed->id }}, '{{ addslashes($playerRed->player_name) }}')">
+                            🟥 SUDUT MERAH<br>
+                            <small class="fw-normal">{{ $playerRed->player_name }} ({{ $playerRed->player_contingent }})</small>
+                        </button>
+                    @endif
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {{-- Hidden inputs for JS: pass jenis_pertandingan and max_ronde --}}
 <input type="hidden" id="jenis_pertandingan" value="{{ $jenis_pertandingan }}">
 <input type="hidden" id="max_ronde" value="{{ $max_ronde }}">
 
 <script src="/js/sendEventTanding.js"></script>
 <script src="/js/validationDewan.js"></script>
+
+<script>
+    function selectWinner(playerId, playerName) {
+        if (confirm(`Apakah Anda yakin ingin menentukan ${playerName} sebagai pemenang?`)) {
+            fetch('/dewan-tanding/set-winner', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({
+                    pertandingan_id: {{ $id }},
+                    winner_id: playerId
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => { throw err; });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === 'success') {
+                    alert(data.message);
+                    window.location.reload();
+                } else {
+                    alert('Gagal: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Terjadi kesalahan: ' + (error.message || 'Kesalahan jaringan.'));
+            });
+        }
+    }
+</script>
 
 @endsection
