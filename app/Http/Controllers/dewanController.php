@@ -556,30 +556,42 @@ class dewanController extends Controller
             broadcast(new \App\Events\MatchStatusChanged($pertandingan->arena_id, $pertandingan->id, 'selesai'))->toOthers();
 
 
-            // If there's a next match, advance the winner
+            // If there's a next match, advance the winner(s)
             if ($pertandingan->next_match_id) {
                 $nextMatch = Pertandingan::find($pertandingan->next_match_id);
                 if ($nextMatch) {
-                    // Check if player is already advanced to next match
-                    $alreadyExists = $nextMatch->players()
-                        ->where('player_name', $winnerPlayer->player_name)
-                        ->where('player_contingent', $winnerPlayer->player_contingent)
-                        ->exists();
+                    // Get all players from the winning side (important for Ganda/Regu where 1 side has multiple players)
+                    $winningSide = $winnerPlayer->side_number;
+                    $allWinningPlayers = $pertandingan->players->where('side_number', $winningSide);
 
-                    if (!$alreadyExists) {
-                        $existingCount = $nextMatch->players()->count();
-                        
-                        // If count is 0, side_number = 1. If 1, side_number = 2.
-                        // If somehow >= 2, we fallback to 2 or ignore.
-                        if ($existingCount < 2) {
-                            $sideNumber = ($existingCount === 0) ? 1 : 2;
+                    // Determine which side number to assign in the next match
+                    $existingSides = $nextMatch->players()->pluck('side_number')->unique()->values();
+                    
+                    if ($existingSides->isEmpty()) {
+                        $sideNumber = 1;
+                    } elseif ($existingSides->count() == 1) {
+                        $sideNumber = $existingSides->first() == 1 ? 2 : 1;
+                    } else {
+                        // Next match already has 2 sides filled, shouldn't insert more
+                        $sideNumber = null;
+                    }
 
-                            $nextMatch->players()->create([
-                                'player_name'       => $winnerPlayer->player_name,
-                                'player_contingent' => $winnerPlayer->player_contingent,
-                                'side_number'       => $sideNumber,
-                                'total_score'       => 0,
-                            ]);
+                    if ($sideNumber !== null) {
+                        foreach ($allWinningPlayers as $player) {
+                            // Check if player is already advanced to next match
+                            $alreadyExists = $nextMatch->players()
+                                ->where('player_name', $player->player_name)
+                                ->where('player_contingent', $player->player_contingent)
+                                ->exists();
+
+                            if (!$alreadyExists) {
+                                $nextMatch->players()->create([
+                                    'player_name'       => $player->player_name,
+                                    'player_contingent' => $player->player_contingent,
+                                    'side_number'       => $sideNumber,
+                                    'total_score'       => 0,
+                                ]);
+                            }
                         }
                     }
                 }

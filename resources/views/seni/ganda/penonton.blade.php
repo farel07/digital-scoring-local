@@ -28,6 +28,13 @@
         .flash-animation {
             animation: flashYellow 1.2s ease-in-out;
         }
+        @keyframes bounceShort {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+        .animate-bounce-short {
+            animation: bounceShort 2.5s infinite ease-in-out;
+        }
     </style>
     @include('components.auto-refresh')
 </head>
@@ -180,6 +187,7 @@
 
         // Side monitoring state (same as dewanOperator)
         let monitoringSide = '{{ $cachedSide ?? 1 }}'; // Initialized from cache
+        let lastMatchInfo = null;
         let lastEventData = null;
         let previousJudgeData = {};
         let previousPenalties = [];
@@ -333,6 +341,7 @@
         // Render match info — filtered by monitoringSide
         function renderMatchInfo(match) {
             if (!match) return;
+            lastMatchInfo = match;
             const players = match.players || [];
             const sideNumber = parseInt(monitoringSide);
             const sidePlayers = players.filter(p => p.side_number === sideNumber);
@@ -363,6 +372,8 @@
                 document.getElementById('contingentName').textContent = 'TIDAK ADA DATA';
                 document.getElementById('playerNames').innerHTML = '<p class="text-xs text-gray-400 italic">Tidak ada peserta pada sudut ini</p>';
             }
+
+            checkWinnerDisplay(match);
         }
 
         // =========================================================
@@ -377,6 +388,10 @@
                     checkForChanges(result.data);
                     lastEventData = result.data;
                     renderDashboard(result.data);
+                    
+                    if (lastMatchInfo) {
+                        checkWinnerDisplay(lastMatchInfo);
+                    }
                 }
             } catch (error) {
                 console.error('Error fetching events:', error);
@@ -626,6 +641,147 @@
             // Setup WebSocket or polling
             setTimeout(setupWebSocket, 500);
         });
+
+        function getFinalScoreForSide(side, data) {
+            if (!data) return 0.00;
+            const judges = data.judges || {};
+            const penalties = data.penalties || [];
+
+            // Build judgeArray filtered by side
+            const defaultJudges = initializeDefaultJudges();
+            const judgeArray = defaultJudges.map(defaultJudge => {
+                const key = `${defaultJudge.judge_id}_${side}`;
+                return judges[key] || defaultJudge;
+            });
+
+            // Calculate side-specific penalties
+            const activePenalties = penalties.filter(p => p.status === 'active' && (p.side == side || !p.side));
+            const sideTotalPenalties = activePenalties.reduce((sum, p) => sum + parseFloat(p.value), 0);
+
+            const scores = judgeArray.map(j => j.total).sort((a, b) => a - b);
+            const median = calculateMedian(scores);
+            const finalScore = median + sideTotalPenalties; // penalties are negative
+
+            return finalScore;
+        }
+
+        function checkWinnerDisplay(match) {
+            if (match.status === 'selesai' && match.winner_id) {
+                // Get winner info
+                const winnerPlayer = match.players.find(p => p.id === match.winner_id);
+                const winningSide = winnerPlayer ? winnerPlayer.side_number : null;
+
+                // Build Leaderboard
+                const allSides = [...new Set(match.players.map(p => p.side_number))];
+                let leaderboard = [];
+                
+                allSides.forEach(side => {
+                    const sidePlayers = match.players.filter(p => p.side_number === side);
+                    const score = getFinalScoreForSide(side, lastEventData);
+                    const contingent = sidePlayers.length > 0 ? sidePlayers[0].player_contingent : '-';
+                    const names = sidePlayers.map(p => p.player_name).join(', ');
+                    
+                    leaderboard.push({
+                        side: side,
+                        contingent: contingent,
+                        names: names,
+                        score: score,
+                        isWinner: side === winningSide
+                    });
+                });
+
+                // Sort by score descending
+                leaderboard.sort((a, b) => b.score - a.score);
+
+                // Update UI for the main winner
+                if (winnerPlayer) {
+                    const winnerPlayers = match.players.filter(p => p.side_number === winningSide);
+                    document.getElementById('winnerContingent').textContent = winnerPlayer.player_contingent.toUpperCase();
+                    document.getElementById('winnerNames').innerHTML = winnerPlayers.map(p => `
+                        <div class="text-xl font-extrabold text-white">${p.player_name.toUpperCase()}</div>
+                    `).join('');
+                }
+
+                // Generate Leaderboard HTML
+                const leaderboardHtml = leaderboard.map((item, index) => {
+                    const isWinner = item.isWinner;
+                    const bgClass = isWinner ? 'bg-yellow-500/20 border-yellow-500/50' : 'bg-slate-800/50 border-white/10';
+                    const textClass = isWinner ? 'text-yellow-400' : 'text-gray-300';
+                    const rankBadge = isWinner ? '👑' : `#${index + 1}`;
+                    
+                    return `
+                        <div class="flex items-center justify-between p-3 rounded-xl border ${bgClass} transition-all">
+                            <div class="flex items-center gap-4 min-w-0">
+                                <div class="w-10 h-10 shrink-0 rounded-full ${isWinner ? 'bg-yellow-500 text-slate-900' : 'bg-slate-700 text-gray-400'} flex items-center justify-center font-black text-sm">
+                                    ${rankBadge}
+                                </div>
+                                <div class="text-left min-w-0">
+                                    <div class="font-bold ${textClass} text-base leading-tight uppercase truncate">${item.contingent}</div>
+                                    <div class="text-xs text-gray-400 truncate max-w-[200px]" title="${item.names}">${item.names}</div>
+                                </div>
+                            </div>
+                            <div class="font-mono font-black text-xl pl-4 shrink-0 ${textClass}">
+                                ${item.score.toFixed(3)}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                document.getElementById('leaderboardContainer').innerHTML = leaderboardHtml;
+
+                const overlay = document.getElementById('winnerOverlay');
+                overlay.classList.remove('hidden');
+                setTimeout(() => {
+                    overlay.classList.remove('opacity-0', 'scale-95');
+                    overlay.classList.add('opacity-100', 'scale-100');
+                }, 50);
+            } else {
+                const overlay = document.getElementById('winnerOverlay');
+                if (overlay && !overlay.classList.contains('hidden')) {
+                    overlay.classList.add('opacity-0', 'scale-95');
+                    overlay.classList.remove('opacity-100', 'scale-100');
+                    setTimeout(() => overlay.classList.add('hidden'), 700);
+                }
+            }
+        }
     </script>
+
+    <!-- Winner Overlay (Hidden by default) -->
+    <div id="winnerOverlay" class="fixed inset-0 bg-slate-950/90 z-50 flex flex-col items-center justify-center hidden transition-all duration-700 opacity-0 scale-95">
+        <!-- Glow/Confetti decoration -->
+        <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(234,179,8,0.15)_0%,transparent_60%)] animate-pulse"></div>
+        
+        <div class="relative max-w-2xl w-full mx-4 bg-slate-900 border border-yellow-500/30 rounded-3xl p-8 text-center shadow-[0_0_50px_rgba(234,179,8,0.2)] overflow-hidden animate-bounce-short flex flex-col max-h-[90vh]">
+            <!-- Trophy & Title -->
+            <div class="mb-4 relative shrink-0">
+                <div class="w-16 h-16 mx-auto bg-gradient-to-br from-yellow-400 to-amber-500 rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(234,179,8,0.4)] border border-yellow-300">
+                    <svg class="w-8 h-8 text-slate-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v5m-3 0h6m-3-10V4m-5 4H4a2 2 0 00-2 2v3a2 2 0 002 2h1m11-7h1a2 2 0 012 2v3a2 2 0 01-2 2h-1M6 6a4 4 0 018 0v7a4 4 0 01-8 0V6z" />
+                    </svg>
+                </div>
+                <div class="text-yellow-400 font-extrabold text-xs uppercase tracking-widest mt-3">PERTANDINGAN SELESAI</div>
+            </div>
+
+            <h2 class="text-3xl font-black text-white tracking-tight mb-2 shrink-0">PEMENANG</h2>
+            <div class="h-1 w-16 bg-gradient-to-r from-transparent via-yellow-400 to-transparent mx-auto mb-4 shrink-0"></div>
+            
+            <!-- Winner Details -->
+            <div id="winnerContingent" class="text-2xl font-black text-yellow-400 mb-2 tracking-wide uppercase shrink-0">KONTINGEN</div>
+            
+            <div id="winnerNames" class="space-y-1 mb-6 bg-slate-950/50 p-4 rounded-2xl border border-white/5 shrink-0">
+                <!-- Winner names will be injected here -->
+            </div>
+            
+            <div class="w-full h-px bg-white/10 mb-5 shrink-0"></div>
+
+            <!-- Leaderboard Summary -->
+            <div class="text-left w-full flex-1 overflow-hidden flex flex-col">
+                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 px-2 shrink-0">Ringkasan Poin</h3>
+                <div id="leaderboardContainer" class="space-y-2 overflow-y-auto pr-2 pb-2" style="scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.2) transparent;">
+                    <!-- Leaderboard items -->
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

@@ -27,6 +27,7 @@ Route::get('/route_test', function () {
 });
 Route::get('/', [AuthController::class, 'showLoginForm'])->name('login');
 Route::get('/api/active-match-url', [AuthController::class, 'getActiveMatchUrl']);
+Route::get('/api/active-match-url-public/{arenaId}', [AuthController::class, 'getActiveMatchUrlPublic']);
 Route::get('/waiting-match', [AuthController::class, 'waitingMatch'])->name('waiting-match');
 
 

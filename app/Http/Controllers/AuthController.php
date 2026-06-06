@@ -203,6 +203,33 @@ class AuthController extends Controller
     }
 
     /**
+     * Get active match redirect URL for public spectators (no login required)
+     */
+    public function getActiveMatchUrlPublic($arenaId)
+    {
+        $activeMatch = \App\Models\Pertandingan::where('arena_id', $arenaId)
+            ->where('status', 'berlangsung')
+            ->with('kelas')
+            ->first();
+
+        if (!$activeMatch) {
+            return response()->json(['url' => null]);
+        }
+
+        $matchType = strtolower($activeMatch->kelas->jenis_pertandingan);
+
+        if (in_array($matchType, ['tunggal', 'regu'])) {
+            return response()->json(['url' => "/penonton-seni-tunggal-regu/{$activeMatch->id}"]);
+        }
+
+        if ($matchType === 'ganda') {
+            return response()->json(['url' => "/penonton-seni-ganda/{$activeMatch->id}"]);
+        }
+
+        return response()->json(['url' => null]);
+    }
+
+    /**
      * Show waiting match page
      */
     public function waitingMatch()

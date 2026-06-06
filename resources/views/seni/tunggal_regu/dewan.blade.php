@@ -6,16 +6,13 @@
     <title>Dewan - {{ $pertandingan->kelas->nama_kelas ?? 'Seni' }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <meta name="csrf-token" content="{{ csrf_token() }}">
-<<<<<<< HEAD
-    @include('components.auto-refresh')
-=======
     <style>
         .row-active-blue { background:#eff6ff; }
         .row-active-red  { background:#fef2f2; }
         .row-active-other{ background:#f5f3ff; }
         .btn-scale:active { transform: scale(0.95); }
     </style>
->>>>>>> b365bb7ec0b42f23b672d46119467ab386024779
+    @include('components.auto-refresh')
 </head>
 
 @php
@@ -58,9 +55,14 @@
                         </span>
                     </p>
                 </div>
-                <div id="sideIndicator"
-                     class="px-4 py-2 rounded-xl font-bold text-sm bg-blue-100 text-blue-800 border border-blue-200">
-                    Sudut Biru
+                <div class="flex items-center gap-2">
+                    <button onclick="openWinnerModal()" class="px-4 py-2 rounded-xl font-bold text-sm bg-green-600 text-white hover:bg-green-700 transition-colors shadow">
+                        🏆 Tentukan Pemenang
+                    </button>
+                    <div id="sideIndicator"
+                         class="px-4 py-2 rounded-xl font-bold text-sm bg-blue-100 text-blue-800 border border-blue-200">
+                        Sudut Biru
+                    </div>
                 </div>
             </div>
         </div>
@@ -154,6 +156,39 @@
         <div id="toast"
              class="fixed bottom-6 right-6 bg-gray-800 text-white px-4 py-3 rounded-xl shadow-xl text-sm font-medium
                     opacity-0 pointer-events-none transition-opacity duration-300">
+        </div>
+        {{-- Winner Modal --}}
+        <div id="winnerModal" class="fixed inset-0 z-50 flex items-center justify-center hidden bg-black bg-opacity-50 backdrop-blur-sm transition-opacity">
+            <div class="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden transform scale-95 opacity-0 transition-all duration-300" id="winnerModalContent">
+                <div class="bg-green-600 text-white px-6 py-4 flex justify-between items-center">
+                    <h3 class="font-bold text-lg">TENTUKAN PEMENANG</h3>
+                    <button onclick="closeWinnerModal()" class="text-white hover:text-green-200 transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+                <div class="p-6">
+                    <p class="text-gray-600 mb-4 text-center text-sm font-medium">Pilih peserta pemenang untuk pertandingan ini:</p>
+                    <div class="space-y-3">
+                        @foreach($allSides as $sideNum)
+                            @php
+                                $sidePlayers = $allPlayers->get($sideNum, collect());
+                                $firstPlayer = $sidePlayers->first();
+                                $pId = $firstPlayer ? $firstPlayer->id : null;
+                                $pName = $sidePlayers->isNotEmpty() ? $sidePlayers->pluck('player_name')->implode(' / ') : 'Peserta '.$sideNum;
+                            @endphp
+                            @if($pId)
+                                <button onclick="selectWinner({{ $pId }}, '{{ addslashes($pName) }}')" class="w-full py-3 px-4 rounded-xl font-bold border-2 transition-all {{ $sideNum == 1 ? 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white' : ($sideNum == 2 ? 'border-red-200 bg-red-50 text-red-700 hover:bg-red-600 hover:text-white' : 'border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-600 hover:text-white') }}">
+                                    @if($isPrestasi && $sideNum == 1) 🟦 SUDUT BIRU @elseif($isPrestasi && $sideNum == 2) 🟥 SUDUT MERAH @else Peserta {{ $sideNum }} @endif
+                                    <div class="text-xs font-normal mt-1 opacity-80 truncate">{{ $pName }}</div>
+                                </button>
+                            @endif
+                        @endforeach
+                    </div>
+                </div>
+                <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end">
+                    <button onclick="closeWinnerModal()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors">Batal</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -403,6 +438,61 @@
             fetchMatchData();
             setInterval(fetchMatchData, 5000);
         });
+
+        // ─── Winner Modal Logic ───
+        const winnerModal = document.getElementById('winnerModal');
+        const winnerModalContent = document.getElementById('winnerModalContent');
+
+        function openWinnerModal() {
+            winnerModal.classList.remove('hidden');
+            // Small delay to allow display:block to apply before animating opacity/transform
+            setTimeout(() => {
+                winnerModalContent.classList.remove('scale-95', 'opacity-0');
+                winnerModalContent.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        function closeWinnerModal() {
+            winnerModalContent.classList.remove('scale-100', 'opacity-100');
+            winnerModalContent.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                winnerModal.classList.add('hidden');
+            }, 300); // Wait for transition to finish
+        }
+
+        function selectWinner(playerId, playerName) {
+            if (confirm(`Apakah Anda yakin ingin menentukan ${playerName} sebagai pemenang?`)) {
+                fetch('/dewan-tanding/set-winner', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': CSRF_TOKEN
+                    },
+                    body: JSON.stringify({
+                        pertandingan_id: PERTANDINGAN_ID,
+                        winner_id: playerId
+                    })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(err => { throw err; });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.status === 'success') {
+                        showToast(data.message);
+                        setTimeout(() => window.location.reload(), 1500);
+                    } else {
+                        alert('Gagal: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Terjadi kesalahan: ' + (error.message || 'Kesalahan jaringan.'));
+                });
+            }
+        }
     </script>
 </body>
 </html>

@@ -20,8 +20,13 @@
                 .listen('MatchStatusChanged', (e) => {
                     console.log('Match Status Changed in this arena!', e);
                     if (e.status === 'berlangsung') {
-                        // Fetch the appropriate URL for the new active match
-                        fetch('/api/active-match-url')
+                        // If it's a public penonton page, use the public redirect endpoint
+                        const isPenontonPage = location.pathname.startsWith('/penonton-');
+                        const urlEndpoint = isPenontonPage 
+                            ? '/api/active-match-url-public/' + arenaId
+                            : '/api/active-match-url';
+
+                        fetch(urlEndpoint)
                             .then(response => response.json())
                             .then(data => {
                                 if (data.url && data.url !== '/waiting-match' && data.url !== '/') {
@@ -37,6 +42,12 @@
                             window.location.reload();
                         } else if (location.pathname.startsWith('/penilaian/') || location.pathname.startsWith('/dewan-operator-')) {
                             window.location.href = '/operator/dashboard';
+                        } else if (location.pathname.startsWith('/penonton-')) {
+                            // Fetch final results to show winner overlay
+                            console.log('Match completed. Fetching final results to show winner.');
+                            if (typeof fetchMatchInfo === 'function') fetchMatchInfo();
+                            if (typeof fetchMatchData === 'function') fetchMatchData();
+                            if (typeof fetchEvents === 'function') fetchEvents();
                         } else if (location.pathname !== '/waiting-match' && location.pathname !== '/login' && location.pathname !== '/') {
                             window.location.href = '/waiting-match';
                         }
